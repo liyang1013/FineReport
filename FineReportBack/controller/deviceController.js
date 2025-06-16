@@ -22,7 +22,7 @@ exports.setDeviceUrl = async (req, res) => {
 
         const device = await Device.updateUrl(req.params.deviceId, url);
 
-        notifyDeviceUrlUpdate(req.params.deviceId);
+        broadcastUrlUpdate(req.params.deviceId);
 
         res.json(device);
     } catch (error) {
