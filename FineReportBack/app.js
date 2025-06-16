@@ -26,7 +26,7 @@ app.use((err, req, res, next) => {
 });
 
 // 启动服务器
-const PORT = process.env.SERVER_PORT || 3000;
+const PORT = process.env.SERVER_PORT;
 server.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });

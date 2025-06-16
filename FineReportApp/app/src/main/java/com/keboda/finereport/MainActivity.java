@@ -18,6 +18,7 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.FrameLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
@@ -33,13 +34,18 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Enumeration;
 
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
+
 public class MainActivity extends Activity {
     private static final String TAG = "TVUrlDisplay";
     private static final String PREFS_NAME = "TVAppPrefs";
     private static final String URL_KEY = "current_url";
-    private static final String SERVER_URL = "http://yourserver.com/api/url";
-    private static final String WS_SERVER_URL = "ws://yourserver.com/ws";
-
+    private static final String SERVER_URL = "http://192.168.1.8:3000/api/devices/";
+    private static final String WS_SERVER_URL = "ws://192.168.1.8:3000";
+    private long backPressedTime = 0;
+    private Toast backToast;
     private String deviceId;
     private String currentUrl;
     private FrameLayout container;
@@ -49,6 +55,7 @@ public class MainActivity extends Activity {
     private Handler handler = new Handler();
     private Runnable reconnectRunnable;
 
+    @SuppressLint("HardwareIds")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -60,7 +67,7 @@ public class MainActivity extends Activity {
 
         if (isNetworkConnected()) {
             checkAndLoadUrl();
-//            initWebSocket();
+            initWebSocket();
         } else {
             displayMessage("无网络连接，请检查网络设置");
         }
@@ -88,13 +95,29 @@ public class MainActivity extends Activity {
     @SuppressLint("StaticFieldLeak")
     private void fetchUrlFromServer() {
         Log.d(TAG, "Fetching URL from server...");
+
         new AsyncTask<Void, Void, String>() {
             @Override
             protected String doInBackground(Void... voids) {
-                try {
-                    // 实际项目中实现HTTP请求
-                    // 这里使用模拟数据
-                    return null;
+                OkHttpClient client = new OkHttpClient();
+                Request request = new Request.Builder()
+                        .url(SERVER_URL + deviceId)
+                        .build();
+
+                try (Response response = client.newCall(request).execute()) {
+                    if (!response.isSuccessful()) {
+                        Log.e(TAG, "Unexpected code " + response);
+                        return null;
+                    }
+
+                    String responseData = response.body().string();
+                    ApiResponse apiResponse = gson.fromJson(responseData, ApiResponse.class);
+                    Log.d(TAG, apiResponse.getData().toString());
+
+                    // 假设返回的是JSON格式，这里简单处理，实际应根据你的API返回格式解析
+
+                    return apiResponse.getData().toString();
+
                 } catch (Exception e) {
                     Log.e(TAG, "Error fetching URL from server", e);
                     return null;
@@ -119,6 +142,7 @@ public class MainActivity extends Activity {
         }.execute();
     }
 
+    @SuppressLint("SetJavaScriptEnabled")
     private void loadUrl(String url) {
         Log.d(TAG, "Loading URL: " + url);
         container.removeAllViews();
@@ -164,13 +188,14 @@ public class MainActivity extends Activity {
         webView.loadUrl(url);
     }
 
+    @SuppressLint("SetTextI18n")
     private void displayIpAndMessage() {
         Log.d(TAG, "Displaying IP and message");
         container.removeAllViews();
 
         String ipAddress = getLocalIpAddress();
         TextView textView = new TextView(this);
-        textView.setText("IP: " + ipAddress + "\n请联系管理员设置看板URL");
+        textView.setText("本机IP: " + ipAddress + "\n请联系管理员设置看板URL");
         textView.setTextSize(24);
         textView.setGravity(Gravity.CENTER);
 
@@ -311,4 +336,18 @@ public class MainActivity extends Activity {
             webView.onResume();
         }
     }
+
+    @Override
+    public void onBackPressed() {
+        if (backPressedTime + 2000 > System.currentTimeMillis()) {
+            backToast.cancel();
+            super.onBackPressed();
+            return;
+        } else {
+            backToast = Toast.makeText(this, "再按一次退出应用", Toast.LENGTH_SHORT);
+            backToast.show();
+        }
+        backPressedTime = System.currentTimeMillis();
+    }
+
 }
