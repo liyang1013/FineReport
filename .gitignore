@@ -1,0 +1,11 @@
+FineReportApp/*.iml
+FineReportApp/.gradle
+FineReportApp/local.properties
+FineReportApp/.idea
+FineReportApp/build
+FineReportApp/local.properties
+
+FineReportBack/node_modules
+
+FineReportFront/node_modules
+FineReportFront/.vscode
