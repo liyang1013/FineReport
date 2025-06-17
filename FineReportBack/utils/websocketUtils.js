@@ -1,11 +1,10 @@
 const WebSocket = require('ws');
 
-// 存储 WebSocket 服务器实例
 let wssInstance = null;
 
 /**
  * 初始化 WebSocket 服务器
- * @param {WebSocket.Server} wss - WebSocket 服务器实例
+ * @param {WebSocket.Server} wss
  */
 function initializeWebSocket(wss) {
     wssInstance = wss;
@@ -13,8 +12,8 @@ function initializeWebSocket(wss) {
 
 /**
  * 向特定设备广播消息
- * @param {string} deviceId - 目标设备ID
- * @param {object} message - 要发送的消息对象
+ * @param {string} deviceId 目标设备ID
+ * @param {object} message 要发送的消息对象
  */
 function broadcastToDevice(deviceId, message) {
     if (!wssInstance) {

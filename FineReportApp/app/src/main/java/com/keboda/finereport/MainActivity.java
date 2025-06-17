@@ -20,12 +20,15 @@ import android.widget.FrameLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
+
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 
 import org.java_websocket.client.WebSocketClient;
 import org.java_websocket.handshake.ServerHandshake;
 
+import java.io.IOException;
 import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
@@ -34,6 +37,8 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Enumeration;
 
+import okhttp3.Call;
+import okhttp3.Callback;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
@@ -42,12 +47,11 @@ public class MainActivity extends Activity {
     private static final String TAG = "TVUrlDisplay";
     private static final String PREFS_NAME = "TVAppPrefs";
     private static final String URL_KEY = "current_url";
-    private static final String SERVER_URL = "http://192.168.1.8:3000/api/devices/";
-    private static final String WS_SERVER_URL = "ws://192.168.1.8:3000";
+    private static final String SERVER_URL = "http://172.17.168.89:3000/api/devices/";
+    private static final String WS_SERVER_URL = "ws://172.17.168.89:3000";
     private long backPressedTime = 0;
     private Toast backToast;
     private String deviceId;
-    private String currentUrl;
     private FrameLayout container;
     private WebView webView;
     private WebSocketClient webSocketClient;
@@ -60,7 +64,6 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
         container = findViewById(R.id.container);
         deviceId = Settings.Secure.getString(getContentResolver(), Settings.Secure.ANDROID_ID);
         Log.d(TAG, "Device ID: " + deviceId);
@@ -79,69 +82,91 @@ public class MainActivity extends Activity {
         return activeNetwork != null && activeNetwork.isConnected();
     }
 
+    /**
+     * 初始化获取本地Url，未找到通过API请求
+     */
     private void checkAndLoadUrl() {
         SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
-        currentUrl = prefs.getString(URL_KEY, "");
-//        currentUrl = "http://www.baidu.com";
+        String currentUrl = prefs.getString(URL_KEY, "");
         Log.d(TAG, "SharedPreferences URL: " + currentUrl);
-
-        if (currentUrl == null || currentUrl.isEmpty()) {
+        if (currentUrl.isEmpty()) {
             fetchUrlFromServer();
         } else {
             loadUrl(currentUrl);
         }
     }
 
+    /**
+     * 请求Url
+     */
     @SuppressLint("StaticFieldLeak")
     private void fetchUrlFromServer() {
         Log.d(TAG, "Fetching URL from server...");
 
-        new AsyncTask<Void, Void, String>() {
+        OkHttpClient client = new OkHttpClient();
+        Request request = new Request.Builder()
+                .url(SERVER_URL + deviceId)
+                .build();
+
+        client.newCall(request).enqueue(new Callback() {
             @Override
-            protected String doInBackground(Void... voids) {
-                OkHttpClient client = new OkHttpClient();
-                Request request = new Request.Builder()
-                        .url(SERVER_URL + deviceId)
-                        .build();
+            public void onFailure(@NonNull Call call, @NonNull IOException e) {
+                Log.e(TAG, "Error fetching URL from server", e);
+                runOnUiThread(() -> {
+                    String ipAddress = getLocalIpAddress();
+                    displayMessage("本机IP: " + ipAddress + "\n请联系管理员设置看板URL");
+                });
+            }
 
-                try (Response response = client.newCall(request).execute()) {
-                    if (!response.isSuccessful()) {
-                        Log.e(TAG, "Unexpected code " + response);
-                        return null;
-                    }
+            @Override
+            public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
+                if (!response.isSuccessful()) {
+                    Log.e(TAG, "Unexpected code " + response);
+                    runOnUiThread(() -> {
+                        String ipAddress = getLocalIpAddress();
+                        displayMessage("本机IP: " + ipAddress + "\n请联系管理员设置看板URL");
+                    });
+                    return;
+                }
 
+                try {
+                    assert response.body() != null;
                     String responseData = response.body().string();
                     ApiResponse apiResponse = gson.fromJson(responseData, ApiResponse.class);
-                    Log.d(TAG, apiResponse.getData().toString());
+                    if (apiResponse.getCode() != 200) {
+                        throw new RuntimeException("url请求失败: " + apiResponse.getMessage());
+                    }
+                    String url = apiResponse.getData().toString();
 
-                    // 假设返回的是JSON格式，这里简单处理，实际应根据你的API返回格式解析
-
-                    return apiResponse.getData().toString();
-
+                    runOnUiThread(() -> {
+                        if (!url.isEmpty()) {
+                            Log.d(TAG, "Received URL from server: " + url);
+                            SharedPreferences.Editor editor = getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit();
+                            editor.putString(URL_KEY, url);
+                            editor.apply();
+                            loadUrl(url);
+                        } else {
+                            Log.d(TAG, "No URL available from server");
+                            String ipAddress = getLocalIpAddress();
+                            displayMessage("本机IP: " + ipAddress + "\n请联系管理员设置看板URL");
+                        }
+                    });
                 } catch (Exception e) {
-                    Log.e(TAG, "Error fetching URL from server", e);
-                    return null;
+                    Log.e(TAG, "Error parsing response", e);
+                    runOnUiThread(() -> {
+                        String ipAddress = getLocalIpAddress();
+                        displayMessage("本机IP: " + ipAddress + "\n请联系管理员设置看板URL");
+                    });
                 }
             }
-
-            @Override
-            protected void onPostExecute(String url) {
-                if (url != null && !url.isEmpty()) {
-                    Log.d(TAG, "Received URL from server: " + url);
-
-                    SharedPreferences.Editor editor = getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit();
-                    editor.putString(URL_KEY, url);
-                    editor.apply();
-
-                    loadUrl(url);
-                } else {
-                    Log.d(TAG, "No URL available from server");
-                    displayIpAndMessage();
-                }
-            }
-        }.execute();
+        });
     }
 
+    /**
+     * 初始化WebView，加载Url
+     *
+     * @param url 地址
+     */
     @SuppressLint("SetJavaScriptEnabled")
     private void loadUrl(String url) {
         Log.d(TAG, "Loading URL: " + url);
@@ -153,7 +178,6 @@ public class MainActivity extends Activity {
                     ViewGroup.LayoutParams.MATCH_PARENT,
                     ViewGroup.LayoutParams.MATCH_PARENT));
 
-            // 配置WebView
             WebSettings webSettings = webView.getSettings();
             webSettings.setJavaScriptEnabled(true);
             webSettings.setDomStorageEnabled(true);
@@ -161,11 +185,7 @@ public class MainActivity extends Activity {
             webSettings.setUseWideViewPort(true);
             webSettings.setBuiltInZoomControls(false);
             webSettings.setDisplayZoomControls(false);
-
-            // 设置PC User-Agent
             webSettings.setUserAgentString("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36");
-
-            // 设置WebView客户端
             webView.setWebViewClient(new WebViewClient() {
                 @Override
                 public void onPageFinished(WebView view, String url) {
@@ -179,46 +199,37 @@ public class MainActivity extends Activity {
                     return true;
                 }
             });
-
-            // 设置WebChromeClient用于处理进度等
             webView.setWebChromeClient(new WebChromeClient());
         }
-
         container.addView(webView);
         webView.loadUrl(url);
     }
 
-    @SuppressLint("SetTextI18n")
-    private void displayIpAndMessage() {
-        Log.d(TAG, "Displaying IP and message");
-        container.removeAllViews();
-
-        String ipAddress = getLocalIpAddress();
-        TextView textView = new TextView(this);
-        textView.setText("本机IP: " + ipAddress + "\n请联系管理员设置看板URL");
-        textView.setTextSize(24);
-        textView.setGravity(Gravity.CENTER);
-
-        container.addView(textView);
-    }
-
+    /**
+     * 清空容器显示信息
+     *
+     * @param message 信息
+     */
     private void displayMessage(String message) {
         Log.d(TAG, "Displaying message: " + message);
         container.removeAllViews();
-
         TextView textView = new TextView(this);
         textView.setText(message);
         textView.setTextSize(24);
         textView.setGravity(Gravity.CENTER);
-
         container.addView(textView);
     }
 
+    /**
+     * 获取本机IP
+     *
+     * @return ip
+     */
     private String getLocalIpAddress() {
         try {
-            for (Enumeration<NetworkInterface> en = NetworkInterface.getNetworkInterfaces(); en.hasMoreElements();) {
-                NetworkInterface intf = en.nextElement();
-                for (Enumeration<InetAddress> enumIpAddr = intf.getInetAddresses(); enumIpAddr.hasMoreElements();) {
+            for (Enumeration<NetworkInterface> en = NetworkInterface.getNetworkInterfaces(); en.hasMoreElements(); ) {
+                NetworkInterface into = en.nextElement();
+                for (Enumeration<InetAddress> enumIpAddr = into.getInetAddresses(); enumIpAddr.hasMoreElements(); ) {
                     InetAddress inetAddress = enumIpAddr.nextElement();
                     if (!inetAddress.isLoopbackAddress() && inetAddress instanceof Inet4Address) {
                         return inetAddress.getHostAddress();
@@ -231,13 +242,16 @@ public class MainActivity extends Activity {
         return "未知IP";
     }
 
+    /**
+     * WebSocket初始化，发送设备信息注册
+     */
     private void initWebSocket() {
         Log.d(TAG, "Initializing WebSocket...");
 
         try {
             webSocketClient = new WebSocketClient(new URI(WS_SERVER_URL)) {
                 @Override
-                public void onOpen(ServerHandshake handshakedata) {
+                public void onOpen(ServerHandshake handshake) {
                     Log.d(TAG, "WebSocket connected");
 
                     JsonObject json = new JsonObject();
@@ -276,7 +290,6 @@ public class MainActivity extends Activity {
                     scheduleReconnect();
                 }
             };
-
             webSocketClient.setConnectionLostTimeout(30);
             webSocketClient.connect();
 
@@ -285,6 +298,9 @@ public class MainActivity extends Activity {
         }
     }
 
+    /**
+     * WebSocket重连
+     */
     private void scheduleReconnect() {
         Log.d(TAG, "Scheduling WebSocket reconnect...");
 
@@ -298,7 +314,6 @@ public class MainActivity extends Activity {
                 webSocketClient.reconnect();
             }
         };
-
         handler.postDelayed(reconnectRunnable, 5000);
     }
 

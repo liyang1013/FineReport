@@ -4,12 +4,12 @@ import java.util.Date;
 
 public class ApiResponse {
 
-        private Boolean success;
-        private Integer code;
+    private Boolean success;
+    private Integer code;
 
-        private String message;
+    private String message;
 
-        private Object data;
+    private Object data;
 
     public Integer getCode() {
         return code;

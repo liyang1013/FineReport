@@ -4,12 +4,11 @@ const ApiResponse = require('../utils/response');
 
 exports.getDevice = async (req, res) => {
     try {
-        console.log(req.params.deviceId)
-        // const device = await Device.findByDeviceId(req.params.deviceId);
-        // if (!device) {
-        //     return res.status(404).json(ApiResponse.error('Device not found'));
-        // }
-        res.json(ApiResponse.success('http://www.baidu.com'));
+        const device = await Device.findByDeviceId(req.params.deviceId);
+        if (!device) {
+            return res.status(404).json(ApiResponse.error('Device not found'));
+        }
+        res.json(ApiResponse.success(device.url));
     } catch (error) {
         res.status(500).json(ApiResponse.error(error.message));
     }
@@ -21,11 +20,8 @@ exports.setDeviceUrl = async (req, res) => {
         if (!url) {
             return res.status(400).json(ApiResponse.error('URL is required'));
         }
-
         const device = await Device.updateUrl(req.params.deviceId, url);
-
         notifyDeviceUrlUpdate(req.params.deviceId);
-
         res.json(ApiResponse.success(device));
     } catch (error) {
         res.status(500).json(ApiResponse.error(error.message));
