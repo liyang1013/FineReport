@@ -19,18 +19,6 @@ class ApiResponse {
         return new ApiResponse(false, { errors }, message, 422);
     }
 
-    static paginate(data, pagination, message = '') {
-        return new ApiResponse(true, {
-            items: data,
-            pagination: {
-                total: pagination.total,
-                page: pagination.page,
-                pageSize: pagination.pageSize,
-                totalPages: Math.ceil(pagination.total / pagination.pageSize)
-            }
-        }, message, 200);
-    }
-
     toJSON() {
         return {
             success: this.success,
@@ -43,14 +31,3 @@ class ApiResponse {
 }
 
 module.exports = ApiResponse;
-
-// const result = await Model.findAndCountAll({
-//     limit: pageSize,
-//     offset: (page - 1) * pageSize
-// });
-
-// return ApiResponse.paginate(result.rows, {
-//     total: result.count,
-//     page,
-//     pageSize
-// });

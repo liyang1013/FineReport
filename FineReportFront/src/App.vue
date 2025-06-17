@@ -1,85 +1,218 @@
-<script setup lang="ts">
-import { RouterLink, RouterView } from 'vue-router'
-import HelloWorld from './components/HelloWorld.vue'
-</script>
-
 <template>
-  <header>
-    <img alt="Vue logo" class="logo" src="@/assets/logo.svg" width="125" height="125" />
+  <div class="container">
+    <el-card class="search-card">
+      <el-form :model="searchForm" label-width="80px" :inline="true" label-suffix=":">
 
-    <div class="wrapper">
-      <HelloWorld msg="You did it!" />
+        <el-form-item label="设备ID">
+          <el-input v-model="searchForm.deviceId" placeholder="请输入设备ID" style="width: 200px;" clearable />
+        </el-form-item>
 
-      <nav>
-        <RouterLink to="/">Home</RouterLink>
-        <RouterLink to="/about">About</RouterLink>
-      </nav>
-    </div>
-  </header>
+        <el-form-item label="IP地址">
+          <el-input v-model="searchForm.ipAddress" placeholder="请输入IP地址" style="width: 200px;" clearable />
+        </el-form-item>
 
-  <RouterView />
+        <el-form-item label="URL">
+          <el-input v-model="searchForm.url" placeholder="请输入URL" style="width: 200px;" clearable />
+        </el-form-item>
+
+        <el-form-item style="float:right;">
+          <el-button type="primary" @click="handleSearch" round>查询</el-button>
+          <el-button type="success" @click="handleUpdate" round>更新</el-button>
+        </el-form-item>
+
+      </el-form>
+    </el-card>
+
+    <el-card class="table-card">
+      <el-table :data="tableData" border stripe v-loading="loading"
+        style=" overflow-y: auto; overflow-x: hidden; height: calc(100vh - 135px); max-height: calc(100vh -135px);">
+        <el-table-column prop="deviceId" label="设备ID" />
+        <el-table-column prop="ipAddress" label="IP地址" />
+        <el-table-column prop="url" label="URL" />
+        <el-table-column prop="createTime" label="创建时间" />
+        <el-table-column label="操作" width="150">
+          <template #default="{ row }">
+            <el-button size="small" @click="handleEdit(row)">编辑</el-button>
+            <el-button size="small" type="danger" @click="handleDelete(row)">删除</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+    </el-card>
+  </div>
 </template>
 
-<style scoped>
-header {
-  line-height: 1.5;
-  max-height: 100vh;
+<script lang="ts" setup>
+import { ref, reactive, onMounted } from "vue";
+import type { TableColumnCtx } from "element-plus";
+import { ElMessage, ElMessageBox } from "element-plus";
+import { getDeviceList, deleteDevice } from './api/device'
+import type { DeviceInfo, SearchParams } from './api/types'
+
+
+// 类型定义
+interface SearchForm {
+  deviceId: string;
+  ipAddress: string;
+  url: string;
 }
 
-.logo {
-  display: block;
-  margin: 0 auto 2rem;
+interface TableItem {
+  id: number;
+  deviceId: string;
+  ipAddress: string;
+  url: string;
+  status: string;
+  createTime: string;
 }
 
-nav {
-  width: 100%;
-  font-size: 12px;
-  text-align: center;
-  margin-top: 2rem;
-}
+// 搜索表单
+const searchForm = reactive<SearchParams>({
+  deviceId: "",
+  ipAddress: "",
+  url: "",
+  remark: "",
+});
 
-nav a.router-link-exact-active {
-  color: var(--color-text);
-}
+// 表格数据
+const tableData = ref<TableItem[]>([]);
+const loading = ref(false);
 
-nav a.router-link-exact-active:hover {
-  background-color: transparent;
-}
+// 分页
+const pagination = reactive({
+  currentPage: 1,
+  pageSize: 10,
+  total: 0,
+});
 
-nav a {
-  display: inline-block;
-  padding: 0 1rem;
-  border-left: 1px solid var(--color-border);
-}
+// 初始化数据
+const initData = () => {
+  // 模拟数据
+  const mockData: TableItem[] = [];
+  const statuses = ["success", "warning", "danger"];
 
-nav a:first-of-type {
-  border: 0;
-}
-
-@media (min-width: 1024px) {
-  header {
-    display: flex;
-    place-items: center;
-    padding-right: calc(var(--section-gap) / 2);
+  for (let i = 1; i <= 50; i++) {
+    mockData.push({
+      id: i,
+      deviceId: `DEV-${1000 + i}`,
+      ipAddress: `192.168.1.${i}`,
+      url: `https://example.com/api/${i}`,
+      status: statuses[i % 3],
+      createTime: new Date(Date.now() - i * 3600000).toLocaleString(),
+    });
   }
 
-  .logo {
-    margin: 0 2rem 0 0;
+  tableData.value = mockData;
+  pagination.total = mockData.length;
+};
+
+
+
+// 搜索
+const handleSearch = async () => {
+
+
+  const res = await getDeviceList(searchForm)
+
+
+  // loading.value = true;
+  // // 模拟异步搜索
+  // setTimeout(() => {
+  //   loading.value = false;
+  //   ElMessage.success("搜索成功");
+  //   // 实际项目中这里应该是调用API
+  //   initData();
+  // }, 800);
+};
+
+// 重置
+const handleReset = () => {
+  searchForm.deviceId = "";
+  searchForm.ipAddress = "";
+  searchForm.url = "";
+  handleSearch();
+};
+
+// 更新
+const handleUpdate = () => {
+  loading.value = true;
+  // 模拟异步更新
+  setTimeout(() => {
+    loading.value = false;
+    ElMessage.success("数据已更新");
+    initData();
+  }, 1000);
+};
+
+// 编辑
+const handleEdit = (row: TableItem) => {
+  ElMessageBox.prompt("请输入新的URL", "编辑", {
+    confirmButtonText: "确定",
+    cancelButtonText: "取消",
+    inputValue: row.url,
+  })
+    .then(({ value }) => {
+      row.url = value;
+      ElMessage.success("修改成功");
+    })
+    .catch(() => {
+      ElMessage.info("取消编辑");
+    });
+};
+
+// 删除
+const handleDelete = (row: TableItem) => {
+  ElMessageBox.confirm("确定要删除这条记录吗?", "提示", {
+    confirmButtonText: "确定",
+    cancelButtonText: "取消",
+    type: "warning",
+  })
+    .then(() => {
+      tableData.value = tableData.value.filter((item) => item.id !== row.id);
+      ElMessage.success("删除成功");
+    })
+    .catch(() => {
+      ElMessage.info("取消删除");
+    });
+};
+
+// 生命周期钩子
+onMounted(() => {
+
+});
+</script>
+
+<style scoped lang="scss">
+.container {
+  padding: 20px;
+  background: rgb(221 221 221);
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+
+  :deep(.search-card) {
+    margin-bottom: 20px;
+    height: 53px;
+    border-radius: 15px;
+
+    .el-card__body {
+      padding: 10px 0;
+
+      .el-form-item {
+        margin-bottom: 0;
+      }
+    }
   }
 
-  header .wrapper {
-    display: flex;
-    place-items: flex-start;
-    flex-wrap: wrap;
-  }
+  .table-card {
+    margin-bottom: 20px;
+    height: calc(100vh - 110px);
+    max-height: calc(100vh - 110px);
+    border-radius: 15px;
 
-  nav {
-    text-align: left;
-    margin-left: -1rem;
-    font-size: 1rem;
+    :deep(.el-card__body) {
+      padding: 10px;
+    }
 
-    padding: 1rem 0;
-    margin-top: 1rem;
   }
 }
 </style>

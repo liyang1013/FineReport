@@ -28,9 +28,14 @@ exports.setDeviceUrl = async (req, res) => {
     }
 };
 
-exports.getAllDevices = async (req, res) => {
+exports.queryDevices = async (req, res) => {
     try {
+        console.log('asdasd')
         const devices = await Device.getAllDevices();
+        const { deviceId, ipAddress, url } = req.query
+        console.log(deviceId)
+        console.log(ipAddress)
+        console.log(url)
         res.json(ApiResponse.success(devices));
     } catch (error) {
         res.status(500).json(ApiResponse.error(error.message));
