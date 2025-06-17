@@ -1,6 +1,6 @@
-const Device = require('../models/deviceModel');
-const { notifyDeviceUrlUpdate } = require('./websocketController');
-const ApiResponse = require('../utils/response');
+const Device = require('@/models/deviceModel');
+const { notifyDeviceUrlUpdate } = require('@/controller/websocketController');
+const ApiResponse = require('@/utils/responseUtils');
 
 exports.getDevice = async (req, res) => {
     try {

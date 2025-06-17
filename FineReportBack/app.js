@@ -1,11 +1,12 @@
 require('dotenv').config();
+require('module-alias/register');
 const express = require('express');
 const http = require('http');
 const bodyParser = require('body-parser');
 const cors = require('cors');
-const ApiResponse = require('./utils/response');
-const deviceRoutes = require('./routes/deviceRoutes');
-const { setupWebSocket, broadcastUrlUpdate } = require('./controller/websocketController');
+const ApiResponse = require('@/utils/responseUtils');
+const deviceRoutes = require('@/routes/deviceRoutes');
+const { setupWebSocket, broadcastUrlUpdate } = require('@/controller/websocketController');
 
 
 const app = express();

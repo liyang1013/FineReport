@@ -13,7 +13,7 @@ function initializeWebSocket(wss) {
 /**
  * 向特定设备广播消息
  * @param {string} deviceId 目标设备ID
- * @param {object} message 要发送的消息对象
+ * @param {object} message 要发送的消息对象  url_update | report_device_ip | show_device_info | clear_container
  */
 function broadcastToDevice(deviceId, message) {
     if (!wssInstance) {

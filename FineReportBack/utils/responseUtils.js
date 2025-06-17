@@ -15,10 +15,6 @@ class ApiResponse {
         return new ApiResponse(false, data, message, code);
     }
 
-    static validationError(errors, message = '参数验证失败') {
-        return new ApiResponse(false, { errors }, message, 422);
-    }
-
     toJSON() {
         return {
             success: this.success,
