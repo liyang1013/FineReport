@@ -5,9 +5,9 @@ import android.app.Activity;
 import android.content.SharedPreferences;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
-import android.os.Looper;
 import android.provider.Settings;
 import android.util.Log;
 import android.view.Gravity;
@@ -29,6 +29,12 @@ import com.keboda.finereport.network.ApiResponse;
 
 import org.java_websocket.client.WebSocketClient;
 import org.java_websocket.handshake.ServerHandshake;
+import org.xwalk.core.XWalkPreferences;
+import org.xwalk.core.XWalkResourceClient;
+import org.xwalk.core.XWalkSettings;
+import org.xwalk.core.XWalkView;
+import org.xwalk.core.XWalkWebResourceRequest;
+import org.xwalk.core.XWalkWebResourceResponse;
 
 import java.io.IOException;
 import java.net.Inet4Address;
@@ -55,6 +61,7 @@ public class MainActivity extends Activity {
     private Toast backToast;
     private String deviceId;
     private FrameLayout container;
+    private XWalkView xWalkView;
     private WebView webView;
     private WebSocketClient webSocketClient;
     private final Gson gson = new Gson();
@@ -69,6 +76,10 @@ public class MainActivity extends Activity {
         container = findViewById(R.id.container);
         deviceId = Settings.Secure.getString(getContentResolver(), Settings.Secure.ANDROID_ID);
         Log.d(TAG, "Device ID: " + deviceId);
+
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
+            XWalkPreferences.setValue(XWalkPreferences.REMOTE_DEBUGGING, true);
+        }
 
         if (isNetworkConnected()) {
             checkAndLoadUrl();
@@ -158,7 +169,7 @@ public class MainActivity extends Activity {
     }
 
     /**
-     * 初始化WebView，加载Url
+     * 初始化WebView/XWalkView，加载Url
      *
      * @param url 地址
      */
@@ -167,44 +178,74 @@ public class MainActivity extends Activity {
         Log.d(TAG, "Loading URL: " + url);
         container.removeAllViews();
 
-        if (webView == null) {
-            webView = new WebView(MainActivity.this);
-            webView.setLayoutParams(new ViewGroup.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.MATCH_PARENT));
-            webView.setLayerType(View.LAYER_TYPE_SOFTWARE, null);
-            WebSettings webSettings = webView.getSettings();
-            webSettings.setJavaScriptEnabled(true);
-            webSettings.setDomStorageEnabled(true);
-            webSettings.setLoadWithOverviewMode(true);
-            webSettings.setUseWideViewPort(true);
-            webSettings.setBuiltInZoomControls(false);
-            webSettings.setDisplayZoomControls(false);
-            webSettings.setUserAgentString("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36");
-            webView.setWebViewClient(new WebViewClient() {
-                @Override
-                public void onPageFinished(WebView view, String url) {
-                    super.onPageFinished(view, url);
-                    Log.d(TAG, "Page loaded: " + url);
-                }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            if (webView == null) {
+                webView = new WebView(MainActivity.this);
+                webView.setLayoutParams(new ViewGroup.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.MATCH_PARENT));
+                webView.setLayerType(View.LAYER_TYPE_SOFTWARE, null);
+                WebSettings webSettings = webView.getSettings();
+                webSettings.setJavaScriptEnabled(true);
+                webSettings.setDomStorageEnabled(true);
+                webSettings.setLoadWithOverviewMode(true);
+                webSettings.setUseWideViewPort(true);
+                webSettings.setBuiltInZoomControls(false);
+                webSettings.setDisplayZoomControls(false);
+                webSettings.setUserAgentString("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36");
+                webView.setWebViewClient(new WebViewClient() {
+                    @Override
+                    public void onPageFinished(WebView view, String url) {
+                        super.onPageFinished(view, url);
+                        Log.d(TAG, "Page loaded: " + url);
+                    }
 
-                @Override
-                public boolean shouldOverrideUrlLoading(WebView view, String url) {
-                    view.loadUrl(url);
-                    return true;
-                }
-            });
-            webView.setWebChromeClient(new WebChromeClient());
+                    @Override
+                    public boolean shouldOverrideUrlLoading(WebView view, String url) {
+                        view.loadUrl(url);
+                        return true;
+                    }
+                });
+                webView.setWebChromeClient(new WebChromeClient());
+            }
+            container.addView(webView);
+            webView.loadUrl(url);
+        } else {
+            // Android 6.0以下使用XWalkView
+            if (xWalkView == null) {
+                xWalkView = new XWalkView(MainActivity.this);
+                xWalkView.setLayoutParams(new ViewGroup.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.MATCH_PARENT));
+
+                XWalkSettings settings = xWalkView.getSettings();
+                settings.setJavaScriptEnabled(true);
+                settings.setDomStorageEnabled(true);
+                settings.setLoadWithOverviewMode(true);
+                settings.setUseWideViewPort(true);
+
+                xWalkView.setResourceClient(new XWalkResourceClient(xWalkView) {
+                    @Override
+                    public void onLoadFinished(XWalkView view, String url) {
+                        super.onLoadFinished(view, url);
+                        Log.d(TAG, "XWalkView page loaded: " + url);
+                    }
+
+                    @Override
+                    public XWalkWebResourceResponse shouldInterceptLoadRequest(XWalkView view, XWalkWebResourceRequest request) {
+                        return super.shouldInterceptLoadRequest(view, request);
+                    }
+                });
+            }
+            container.addView(xWalkView);
+            xWalkView.load(url, null);
         }
-        container.addView(webView);
-        webView.loadUrl(url);
     }
 
 
     private void showDeviceInfo() {
         displayMessage("本机IP: " + getLocalIpAddress() + "\n本机DEVICE_ID: " + deviceId + "\n请联系管理员设置看板URL");
     }
-
 
     /**
      * 清空容器显示信息
@@ -345,6 +386,11 @@ public class MainActivity extends Activity {
             webView.destroy();
             webView = null;
         }
+
+        if (xWalkView != null) {
+            xWalkView.onDestroy();
+            xWalkView = null;
+        }
     }
 
     @Override
@@ -353,6 +399,10 @@ public class MainActivity extends Activity {
         if (webView != null) {
             webView.onPause();
         }
+        if (xWalkView != null) {
+            xWalkView.pauseTimers();
+            xWalkView.onHide();
+        }
     }
 
     @Override
@@ -360,6 +410,10 @@ public class MainActivity extends Activity {
         super.onResume();
         if (webView != null) {
             webView.onResume();
+        }
+        if (xWalkView != null) {
+            xWalkView.onShow();
+            xWalkView.resumeTimers();
         }
     }
 

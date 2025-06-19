@@ -43,4 +43,5 @@ dependencies {
     implementation(libs.java.websocket)
     implementation(libs.gson)
     implementation(libs.okhttp)
+    implementation(files("libs/xwalk_core_library-23.53.589.4.aar"))
 }
