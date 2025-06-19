@@ -12,7 +12,6 @@ function setupWebSocket(server) {
         ws.on('message', async (message) => {
             try {
                 const data = JSON.parse(message);
-                console.log(data);
                 if (data.device_id && data.ip_address) {
                     ws.deviceId = data.device_id;
                     await Device.createOrUpdate(data.device_id, data.ip_address);
@@ -25,9 +24,10 @@ function setupWebSocket(server) {
     });
 }
 
-function notifyDeviceUrlUpdate(deviceId) {
+function notifyDevice(deviceId, type) {
+    console.log(type)
     broadcastToDevice(deviceId, {
-        type: 'url_update',
+        type: type,
         device_id: deviceId,
         timestamp: new Date().toISOString()
     });
@@ -35,5 +35,5 @@ function notifyDeviceUrlUpdate(deviceId) {
 
 module.exports = {
     setupWebSocket,
-    notifyDeviceUrlUpdate
+    notifyDevice
 };

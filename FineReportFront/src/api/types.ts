@@ -2,6 +2,7 @@ export interface DeviceInfo {
   deviceId: string
   ipAddress: string
   url: string
+  lastSeen: string
   remark: string
 }
 

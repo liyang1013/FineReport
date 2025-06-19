@@ -5,12 +5,13 @@ import android.app.Activity;
 import android.content.SharedPreferences;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
-import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Looper;
 import android.provider.Settings;
 import android.util.Log;
 import android.view.Gravity;
+import android.view.View;
 import android.view.ViewGroup;
 import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
@@ -24,6 +25,7 @@ import androidx.annotation.NonNull;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
+import com.keboda.finereport.network.ApiResponse;
 
 import org.java_websocket.client.WebSocketClient;
 import org.java_websocket.handshake.ServerHandshake;
@@ -55,8 +57,8 @@ public class MainActivity extends Activity {
     private FrameLayout container;
     private WebView webView;
     private WebSocketClient webSocketClient;
-    private Gson gson = new Gson();
-    private Handler handler = new Handler();
+    private final Gson gson = new Gson();
+    private final Handler handler = new Handler();
     private Runnable reconnectRunnable;
 
     @SuppressLint("HardwareIds")
@@ -112,20 +114,14 @@ public class MainActivity extends Activity {
             @Override
             public void onFailure(@NonNull Call call, @NonNull IOException e) {
                 Log.e(TAG, "Error fetching URL from server", e);
-                runOnUiThread(() -> {
-                    String ipAddress = getLocalIpAddress();
-                    displayMessage("本机IP: " + ipAddress + "\n请联系管理员设置看板URL");
-                });
+                showDeviceInfo();
             }
 
             @Override
-            public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
+            public void onResponse(@NonNull Call call, @NonNull Response response) {
                 if (!response.isSuccessful()) {
                     Log.e(TAG, "Unexpected code " + response);
-                    runOnUiThread(() -> {
-                        String ipAddress = getLocalIpAddress();
-                        displayMessage("本机IP: " + ipAddress + "\n请联系管理员设置看板URL");
-                    });
+                    showDeviceInfo();
                     return;
                 }
 
@@ -136,7 +132,10 @@ public class MainActivity extends Activity {
                     if (apiResponse.getCode() != 200) {
                         throw new RuntimeException("url请求失败: " + apiResponse.getMessage());
                     }
-                    String url = apiResponse.getData().toString();
+
+                    JsonObject json = gson.fromJson(gson.toJson(apiResponse.getData()), JsonObject.class);
+                    Log.d(TAG, json.toString());
+                    String url =  json.get("url").getAsString();
 
                     runOnUiThread(() -> {
                         if (!url.isEmpty()) {
@@ -147,16 +146,12 @@ public class MainActivity extends Activity {
                             loadUrl(url);
                         } else {
                             Log.d(TAG, "No URL available from server");
-                            String ipAddress = getLocalIpAddress();
-                            displayMessage("本机IP: " + ipAddress + "\n请联系管理员设置看板URL");
+                            showDeviceInfo();
                         }
                     });
                 } catch (Exception e) {
                     Log.e(TAG, "Error parsing response", e);
-                    runOnUiThread(() -> {
-                        String ipAddress = getLocalIpAddress();
-                        displayMessage("本机IP: " + ipAddress + "\n请联系管理员设置看板URL");
-                    });
+                    showDeviceInfo();
                 }
             }
         });
@@ -164,6 +159,7 @@ public class MainActivity extends Activity {
 
     /**
      * 初始化WebView，加载Url
+     *
      * @param url 地址
      */
     @SuppressLint("SetJavaScriptEnabled")
@@ -176,7 +172,7 @@ public class MainActivity extends Activity {
             webView.setLayoutParams(new ViewGroup.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT,
                     ViewGroup.LayoutParams.MATCH_PARENT));
-
+            webView.setLayerType(View.LAYER_TYPE_SOFTWARE, null);
             WebSettings webSettings = webView.getSettings();
             webSettings.setJavaScriptEnabled(true);
             webSettings.setDomStorageEnabled(true);
@@ -204,6 +200,12 @@ public class MainActivity extends Activity {
         webView.loadUrl(url);
     }
 
+
+    private void showDeviceInfo() {
+        displayMessage("本机IP: " + getLocalIpAddress() + "\n本机DEVICE_ID: " + deviceId + "\n请联系管理员设置看板URL");
+    }
+
+
     /**
      * 清空容器显示信息
      *
@@ -211,12 +213,14 @@ public class MainActivity extends Activity {
      */
     private void displayMessage(String message) {
         Log.d(TAG, "Displaying message: " + message);
-        container.removeAllViews();
-        TextView textView = new TextView(this);
-        textView.setText(message);
-        textView.setTextSize(24);
-        textView.setGravity(Gravity.CENTER);
-        container.addView(textView);
+        runOnUiThread(() -> {
+            container.removeAllViews();
+            TextView textView = new TextView(this);
+            textView.setText(message);
+            textView.setTextSize(24);
+            textView.setGravity(Gravity.CENTER);
+            container.addView(textView);
+        });
     }
 
     /**
@@ -257,9 +261,8 @@ public class MainActivity extends Activity {
                     json.addProperty("device_id", deviceId);
                     json.addProperty("ip_address", getLocalIpAddress());
                     json.addProperty("type", "device_register");
-
                     send(json.toString());
-                    Log.d(TAG, "Sent device registration: " + json.toString());
+                    Log.d(TAG, "Sent device registration: " + json);
                 }
 
                 @Override
@@ -269,8 +272,17 @@ public class MainActivity extends Activity {
                     try {
                         JsonObject json = gson.fromJson(message, JsonObject.class);
 
-                        if (json.has("type") && "url_update".equals(json.get("type").getAsString())) {
-                            fetchUrlFromServer();
+                        if (json.has("type")) {
+                            switch (json.get("type").getAsString()) {
+                                case "url_update":
+                                    fetchUrlFromServer();
+                                    break;
+                                case "clear_webView":
+                                    showDeviceInfo();
+                                    break;
+                                default:
+                                    Log.d(TAG, "未知的任务类型:" + json.get("type").getAsString());
+                            }
                         }
                     } catch (Exception e) {
                         Log.e(TAG, "Error processing WebSocket message", e);
