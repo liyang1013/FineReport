@@ -1,5 +1,4 @@
 const pool = require('@/config/db');
-const { addDevice } = require('../controller/deviceController');
 
 const Device = {
     async findByDeviceId(deviceId) {
@@ -75,7 +74,7 @@ const Device = {
             params.push(`%${remark}%`);
         }
 
-        query += ' ORDER BY lastSeen DESC';
+        query += ' ORDER BY deviceId, lastSeen DESC';
 
         const [rows] = await pool.query(query, params);
         return rows;

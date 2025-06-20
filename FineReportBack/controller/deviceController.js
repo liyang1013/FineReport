@@ -58,11 +58,11 @@ exports.sendInfo = async (req, res) => {
 
 exports.updateDevice = async (req, res) => {
     try {
-        const {deviceId, ipAddress, url, remark, isUpate } = req.body;
+        const { deviceId, ipAddress, url, remark, isUpate = true } = req.body;
         await Device.createOrUpdate(deviceId, ipAddress, url, remark)
-        // if(isUpate){
-        notifyDevice(deviceId, wsType.UPDATE);
-        // }
+        if (isUpate) {
+            notifyDevice(deviceId, wsType.UPDATE);
+        }
         res.json(ApiResponse.success());
     } catch (error) {
         res.status(500).json(ApiResponse.error(error.message));

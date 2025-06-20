@@ -151,6 +151,9 @@ public class MainActivity extends Activity {
                     runOnUiThread(() -> {
                         if (!url.isEmpty()) {
                             Log.d(TAG, "Received URL from server: " + url);
+                            if(url.equals(getSharedPreferences(PREFS_NAME, MODE_PRIVATE).getString(URL_KEY, ""))){
+                                return;
+                            }
                             SharedPreferences.Editor editor = getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit();
                             editor.putString(URL_KEY, url);
                             editor.apply();
