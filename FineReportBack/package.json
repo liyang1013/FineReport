@@ -16,5 +16,11 @@
   },
     "_moduleAliases": {
     "@": "."
-  }
+  },
+   "bin": "app.js",
+    "pkg": {
+        "scripts": [
+            "build/**/*.js"
+        ]
+    }
 }

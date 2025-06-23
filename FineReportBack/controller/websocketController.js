@@ -14,7 +14,7 @@ function setupWebSocket(server) {
                 const data = JSON.parse(message);
                 if (data.device_id && data.ip_address) {
                     ws.deviceId = data.device_id;
-                    await Device.createOrUpdate(data.device_id, data.ip_address);
+                    await Device.createOrUpdate({deviceId: data.device_id, ipAddress: data.ip_address});
                     console.log(`Device connected: ${data.device_id}`);
                 }
             } catch (error) {

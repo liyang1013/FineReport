@@ -2,6 +2,7 @@ const Device = require('@/models/deviceModel');
 const { notifyDevice } = require('@/controller/websocketController');
 const ApiResponse = require('@/utils/responseUtils');
 const wsType = require('@/models/wsType')
+const DeviceDto = require('@/models/DeviceDto');
 
 exports.getDevice = async (req, res) => {
     try {
@@ -26,8 +27,8 @@ exports.deleteDevice = async (req, res) => {
 
 exports.addDevice = async (req, res) => {
     try {
-        const { deviceId, ipAddress, url, remark } = req.body
-        await Device.addDevice(deviceId, ipAddress, url, remark);
+        const deviceDto = new DeviceDto(req.body);
+        await Device.addDevice(deviceDto);
         res.json(ApiResponse.success());
     } catch (error) {
         res.status(500).json(ApiResponse.error(error.message));
@@ -36,8 +37,8 @@ exports.addDevice = async (req, res) => {
 
 exports.queryDevices = async (req, res) => {
     try {
-        const { deviceId, ipAddress, url, remark } = req.body
-        const devices = await Device.queryDevices(deviceId, ipAddress, url, remark);
+        const deviceDto = new DeviceDto(req.body);
+        const devices = await Device.queryDevices(deviceDto);
         res.json(ApiResponse.success(devices));
     } catch (error) {
         res.status(500).json(ApiResponse.error(error.message));
@@ -58,10 +59,10 @@ exports.sendInfo = async (req, res) => {
 
 exports.updateDevice = async (req, res) => {
     try {
-        const { deviceId, ipAddress, url, remark, isUpate = true } = req.body;
-        await Device.createOrUpdate(deviceId, ipAddress, url, remark)
-        if (isUpate) {
-            notifyDevice(deviceId, wsType.UPDATE);
+       const deviceDto = new DeviceDto(req.body);
+        await Device.createOrUpdate(deviceDto)
+        if (deviceDto.isUpdate) {
+            notifyDevice(deviceDto.deviceId, wsType.UPDATE);
         }
         res.json(ApiResponse.success());
     } catch (error) {

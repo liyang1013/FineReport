@@ -2,22 +2,6 @@
   <div class="app-container">
     <el-card class="search-card">
       <el-form :model="searchForm" label-position="right" label-width="80px" :inline="true" label-suffix=":">
-        <el-form-item label="设备ID">
-          <el-input v-model="searchForm.deviceId" placeholder="请输入设备ID" clearable class="search-input" />
-        </el-form-item>
-
-        <el-form-item label="IP地址">
-          <el-input v-model="searchForm.ipAddress" placeholder="请输入IP地址" clearable class="search-input" />
-        </el-form-item>
-
-        <el-form-item label="URL">
-          <el-input v-model="searchForm.url" placeholder="请输入URL" clearable class="search-input" />
-        </el-form-item>
-
-        <el-form-item label="备注">
-          <el-input v-model="searchForm.remark" placeholder="请输入备注" clearable class="search-input" />
-        </el-form-item>
-
         <div class="action-buttons">
           <el-button type="primary" @click="handleSearch" round class="search-button">
             <el-icon>
@@ -48,6 +32,39 @@
             </template>
           </el-dropdown>
         </div>
+
+        <el-form-item label="名称">
+          <el-input v-model="searchForm.name" placeholder="请输入名称" clearable class="search-input" />
+        </el-form-item>
+
+        <el-form-item label="部门">
+          <el-input v-model="searchForm.department" placeholder="请输入部门" clearable class="search-input" />
+        </el-form-item>
+
+        <el-form-item label="位置">
+          <el-input v-model="searchForm.position" placeholder="请输入位置" clearable class="search-input" />
+        </el-form-item>
+
+        <el-form-item label="设备类型">
+          <el-input v-model="searchForm.type" placeholder="请输入设备类型" clearable class="search-input" />
+        </el-form-item>
+
+        <el-form-item label="设备ID">
+          <el-input v-model="searchForm.deviceId" placeholder="请输入设备ID" clearable class="search-input" />
+        </el-form-item>
+
+        <el-form-item label="IP地址">
+          <el-input v-model="searchForm.ipAddress" placeholder="请输入IP地址" clearable class="search-input" />
+        </el-form-item>
+
+        <!-- <el-form-item label="URL">
+          <el-input v-model="searchForm.url" placeholder="请输入URL" clearable class="search-input" />
+        </el-form-item> -->
+
+        <el-form-item label="备注">
+          <el-input v-model="searchForm.remark" placeholder="请输入备注" clearable class="search-input" />
+        </el-form-item>
+
       </el-form>
     </el-card>
 
@@ -55,12 +72,20 @@
       <el-table :data="tableData" border stripe v-loading="loading" @selection-change="handleSelectionChange"
         style="width: 100%" height="calc(100vh - 180px)">
         <el-table-column type="selection" width="55" align="center" />
-        <el-table-column prop="deviceId" label="设备ID" width="180" />
-        <el-table-column prop="ipAddress" label="IP地址" width="150" />
-        <el-table-column prop="url" label="URL" min-width="200" show-overflow-tooltip />
-        <el-table-column prop="remark" label="备注" width="150" show-overflow-tooltip />
-        <el-table-column prop="lastSeen" label="最近访问时间" width="180" />
-        <el-table-column label="操作" width="120" align="center" fixed="right">
+        <el-table-column prop="name" label="名称" />
+        <el-table-column prop="department" label="部门" />
+        <el-table-column prop="position" label="位置" />
+        <el-table-column prop="type" label="设备类型" />
+        <el-table-column prop="deviceId" label="设备ID" />
+        <el-table-column prop="ipAddress" label="IP地址" />
+        <el-table-column prop="url" label="URL">
+          <template #default="{ row }">
+            <a :href="row.url" target="_blank">{{ row.url }}</a>
+          </template>
+        </el-table-column>
+        <el-table-column prop="remark" label="备注" />
+        <!-- <el-table-column prop="lastSeen" label="最近访问时间" /> -->
+        <el-table-column label="操作" align="center" fixed="right">
           <template #default="{ row }">
             <el-tooltip content="编辑" placement="top">
               <el-button type="primary" @click="showDrawer(row)" :icon="Edit" circle size="small" />
@@ -79,23 +104,36 @@
       </div>
       <div class="drawer-content">
         <el-form :model="editRow" label-width="80px" label-suffix=":">
-          <el-form-item label="设备ID">
+          <el-form-item label="设备ID" required>
             <el-input v-model="editRow.deviceId" disabled />
           </el-form-item>
           <el-form-item label="IP地址">
             <el-input v-model="editRow.ipAddress" disabled />
           </el-form-item>
-          <el-form-item label="URL" required>
-            <el-input v-model="editRow.url" placeholder="请输入URL" clearable type="textarea" :rows="6" />
+          <el-form-item label="名称">
+            <el-input v-model="editRow.name" placeholder="请输入名称" clearable />
+          </el-form-item>
+          <el-form-item label="位置">
+            <el-input v-model="editRow.position" placeholder="请输入位置" clearable />
+          </el-form-item>
+          <el-form-item label="部门">
+            <el-input v-model="editRow.department" placeholder="请输入部门" clearable />
+          </el-form-item>
+          <el-form-item label="设备类型">
+            <el-input v-model="editRow.type" placeholder="请输入设备类型" clearable />
+          </el-form-item>
+          <el-form-item label="URL">
+            <el-input v-model="editRow.url" placeholder="请输入URL" clearable type="textarea" :rows="5" />
           </el-form-item>
           <el-form-item label="备注">
-            <el-input v-model="editRow.remark" placeholder="请输入备注" clearable type="textarea" :rows="3" />
+            <el-input v-model="editRow.remark" placeholder="请输入备注" clearable />
           </el-form-item>
         </el-form>
       </div>
       <div class="drawer-footer">
         <el-button @click="drawer = false">取消</el-button>
-        <el-button type="primary" @click="save">保存</el-button>
+        <el-button type="primary" @click="save(false)">仅保存</el-button>
+        <el-button type="primary" @click="save(true)">保存并推送</el-button>
       </div>
     </el-drawer>
   </div>
@@ -107,12 +145,17 @@ import { ElMessage, ElMessageBox } from "element-plus";
 import { getDeviceList, deleteDevice, sendInfo, updateDevice } from './api/device'
 import type { DeviceInfo, SearchParams } from './api/types'
 import { Edit, Delete, Search, ArrowDown, Upload } from '@element-plus/icons-vue'
+import { tr } from "element-plus/es/locales.mjs";
 
 const searchForm = reactive<SearchParams>({
   deviceId: "",
   ipAddress: "",
-  url: "",
+  // url: "",
   remark: "",
+  position: "",
+  department: "",
+  name: "",
+  type: "",
 });
 
 const tableData = ref<DeviceInfo[]>([]);
@@ -151,15 +194,21 @@ const editRow = ref<DeviceInfo>({
   ipAddress: '',
   url: '',
   remark: '',
-  lastSeen: ''
+  lastSeen: '',
+  position: '',
+  department: '',
+  name: '',
+  type: '',
+  isUpdate: true
 });
 const showDrawer = (row: DeviceInfo) => {
   drawer.value = true;
   editRow.value = { ...row };
 }
 
-const save = async () => {
+const save = async (bool: boolean) => {
   try {
+    editRow.value.isUpdate = bool
     await updateDevice(editRow.value);
     ElMessage.success("修改成功");
     drawer.value = false;
@@ -208,7 +257,7 @@ onMounted(() => {
 
 <style scoped lang="scss">
 .app-container {
-  padding: 20px;
+  padding: 10px;
   background-color: #f5f7fa;
   width: 100vw;
   min-height: 100vh;
@@ -223,7 +272,7 @@ onMounted(() => {
       padding: 18px 20px;
 
       .el-form-item {
-        margin-bottom: 0;
+        margin-bottom: 10px;
         margin-right: 15px;
       }
 

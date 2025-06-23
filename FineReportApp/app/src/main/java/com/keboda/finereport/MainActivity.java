@@ -55,8 +55,8 @@ public class MainActivity extends Activity {
     private static final String TAG = "TVUrlDisplay";
     private static final String PREFS_NAME = "TVAppPrefs";
     private static final String URL_KEY = "current_url";
-    private static final String SERVER_URL = "http://172.17.168.89:3000/api/devices/";
-    private static final String WS_SERVER_URL = "ws://172.17.168.89:3000";
+    private static final String SERVER_URL = "http://172.17.199.141:3000/api/devices/";
+    private static final String WS_SERVER_URL = "ws://172.17.199.141:3000";
     private long backPressedTime = 0;
     private Toast backToast;
     private String deviceId;
@@ -72,6 +72,15 @@ public class MainActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        getWindow().getDecorView().setSystemUiVisibility(
+                View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                        | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                        | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                        | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                        | View.SYSTEM_UI_FLAG_FULLSCREEN
+                        | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
+
         setContentView(R.layout.activity_main);
         container = findViewById(R.id.container);
         deviceId = Settings.Secure.getString(getContentResolver(), Settings.Secure.ANDROID_ID);
@@ -146,14 +155,11 @@ public class MainActivity extends Activity {
 
                     JsonObject json = gson.fromJson(gson.toJson(apiResponse.getData()), JsonObject.class);
                     Log.d(TAG, json.toString());
-                    String url =  json.get("url").getAsString();
+                    String url = json.get("url").getAsString();
 
                     runOnUiThread(() -> {
                         if (!url.isEmpty()) {
                             Log.d(TAG, "Received URL from server: " + url);
-                            if(url.equals(getSharedPreferences(PREFS_NAME, MODE_PRIVATE).getString(URL_KEY, ""))){
-                                return;
-                            }
                             SharedPreferences.Editor editor = getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit();
                             editor.putString(URL_KEY, url);
                             editor.apply();

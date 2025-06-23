@@ -1,4 +1,5 @@
 const pool = require('@/config/db');
+const DeviceDto = require('@/models/DeviceDto');
 
 const Device = {
     async findByDeviceId(deviceId) {
@@ -14,64 +15,100 @@ const Device = {
             [deviceId]
         );
     },
-    async createOrUpdate(deviceId, ipAddress, url = null, remark = null) {
-        const device = await this.findByDeviceId(deviceId);
+    async createOrUpdate(deviceDto) {
+        const device = await this.findByDeviceId(deviceDto.deviceId);
         if (device) {
             const updateFields = [];
             const updateValues = [];
 
             updateFields.push('ipAddress = ?');
-            updateValues.push(ipAddress);
+            updateValues.push(deviceDto.ipAddress);
 
-            if (url !== null) {
+            if (deviceDto.url !== null) {
                 updateFields.push('url = ?');
-                updateValues.push(url);
+                updateValues.push(deviceDto.url);
             }
 
-            if (remark !== null) {
+            if (deviceDto.remark !== null) {
                 updateFields.push('remark = ?');
-                updateValues.push(remark);
+                updateValues.push(deviceDto.remark);
+            }
+
+            if (deviceDto.position !== null) {
+                updateFields.push('position = ?');
+                updateValues.push(deviceDto.position);
+            }
+            if (deviceDto.department !== null) {
+                updateFields.push('department = ?');
+                updateValues.push(deviceDto.department);
+            }
+            if (deviceDto.name !== null) {
+                updateFields.push('name = ?');
+                updateValues.push(deviceDto.name);
+            }
+            if (deviceDto.type !== null) {
+                updateFields.push('type = ?');
+                updateValues.push(deviceDto.type);
             }
 
             updateFields.push('lastSeen = NOW()');
 
             const updateQuery = `UPDATE deviceinfo SET ${updateFields.join(', ')} WHERE deviceId = ?`;
-            updateValues.push(deviceId);
+            updateValues.push(deviceDto.deviceId);
 
             await pool.query(updateQuery, updateValues);
         } else {
-            await this.addDevice(deviceId, ipAddress, url, remark);
+            await this.addDevice(deviceDto);
         }
     },
 
-    async addDevice(deviceId, ipAddress, url, remark) {
+    async addDevice(deviceDTO) {
         await pool.query(
-            'INSERT INTO deviceinfo (deviceId, ipAddress, url,remark, lastSeen) VALUES (?, ?, ?,?, NOW())',
-            [deviceId, ipAddress, url, remark]
+            'INSERT INTO deviceinfo (deviceId, ipAddress, url,remark,position,department,name,type, lastSeen) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())',
+            [deviceDTO.deviceId, deviceDTO.ipAddress, deviceDTO.url, deviceDTO.remark, deviceDTO.position, deviceDTO.department, deviceDTO.name, deviceDTO.type]
         );
     },
-    async queryDevices(deviceId, ipAddress, url, remark) {
+    async queryDevices(deviceDto) {
         let query = 'SELECT * FROM deviceinfo WHERE 1=1';
         const params = [];
 
-        if (deviceId) {
+        if (deviceDto.position) {
+            query += ' AND LOWER(position) LIKE LOWER(?)';
+            params.push(`%${deviceDto.position}%`);
+        }
+
+        if (deviceDto.department) {
+            query += ' AND LOWER(department) LIKE LOWER(?)';
+            params.push(`%${deviceDto.department}%`);
+        }
+
+        if (deviceDto.name) {
+            query += ' AND LOWER(name) LIKE LOWER(?)';
+            params.push(`%${deviceDto.name}%`);
+        }
+        if (deviceDto.type) {
+            query += ' AND LOWER(type) LIKE LOWER(?)';
+            params.push(`%${deviceDto.type}%`);
+        }
+
+        if (deviceDto.deviceId) {
             query += ' AND LOWER(deviceId) LIKE LOWER(?)';
-            params.push(`%${deviceId}%`);
+            params.push(`%${deviceDto.deviceId}%`);
         }
 
-        if (ipAddress) {
+        if (deviceDto.ipAddress) {
             query += ' AND LOWER(ipAddress) LIKE LOWER(?)';
-            params.push(`%${ipAddress}%`);
+            params.push(`%${deviceDto.ipAddress}%`);
         }
 
-        if (url) {
+        if (deviceDto.url) {
             query += ' AND LOWER(url) LIKE LOWER(?)';
-            params.push(`%${url}%`);
+            params.push(`%${deviceDto.url}%`);
         }
 
-        if (remark) {
+        if (deviceDto.remark) {
             query += ' AND LOWER(remark) LIKE LOWER(?)';
-            params.push(`%${remark}%`);
+            params.push(`%${deviceDto.remark}%`);
         }
 
         query += ' ORDER BY deviceId, lastSeen DESC';
