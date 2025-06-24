@@ -23,6 +23,7 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 
+import com.google.android.material.snackbar.Snackbar;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.keboda.finereport.network.ApiResponse;
@@ -294,6 +295,13 @@ public class MainActivity extends Activity {
         }
         return "未知IP";
     }
+    
+    private void showSnackbar(String message){
+        View rootView = findViewById(android.R.id.content);
+        Snackbar snackbar = Snackbar.make(rootView, message, Snackbar.LENGTH_INDEFINITE);
+        snackbar.setDuration(4000);
+        snackbar.show();
+    }
 
     /**
      * WebSocket初始化，发送设备信息注册
@@ -329,6 +337,9 @@ public class MainActivity extends Activity {
                                     break;
                                 case "clear_webView":
                                     showDeviceInfo();
+                                    break;
+                                case "show_info":
+                                    showSnackbar(getLocalIpAddress());
                                     break;
                                 default:
                                     Log.d(TAG, "未知的任务类型:" + json.get("type").getAsString());

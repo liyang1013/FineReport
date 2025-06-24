@@ -10,8 +10,8 @@ android {
         applicationId = "com.keboda.finereport"
         minSdk = 21
         targetSdk = 35
-        versionCode = 12
-        versionName = "1.2"
+        versionCode = 13
+        versionName = "1.3"
         multiDexEnabled = true
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

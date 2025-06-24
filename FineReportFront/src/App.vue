@@ -28,6 +28,11 @@
                     <Delete />
                   </el-icon>清空看板
                 </el-dropdown-item>
+                <el-dropdown-item command="show_info" divided>
+                  <el-icon>
+                    <Delete />
+                  </el-icon>显示IP地址
+                </el-dropdown-item>
               </el-dropdown-menu>
             </template>
           </el-dropdown>
@@ -145,7 +150,7 @@ import { ElMessage, ElMessageBox } from "element-plus";
 import { getDeviceList, deleteDevice, sendInfo, updateDevice } from './api/device'
 import type { DeviceInfo, SearchParams } from './api/types'
 import { Edit, Delete, Search, ArrowDown, Upload } from '@element-plus/icons-vue'
-import { tr } from "element-plus/es/locales.mjs";
+
 
 const searchForm = reactive<SearchParams>({
   deviceId: "",

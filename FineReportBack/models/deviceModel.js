@@ -24,29 +24,29 @@ const Device = {
             updateFields.push('ipAddress = ?');
             updateValues.push(deviceDto.ipAddress);
 
-            if (deviceDto.url !== null) {
+            if (deviceDto.url != null) {
                 updateFields.push('url = ?');
                 updateValues.push(deviceDto.url);
             }
 
-            if (deviceDto.remark !== null) {
+            if (deviceDto.remark != null) {
                 updateFields.push('remark = ?');
                 updateValues.push(deviceDto.remark);
             }
 
-            if (deviceDto.position !== null) {
+            if (deviceDto.position != null) {
                 updateFields.push('position = ?');
                 updateValues.push(deviceDto.position);
             }
-            if (deviceDto.department !== null) {
+            if (deviceDto.department != null) {
                 updateFields.push('department = ?');
                 updateValues.push(deviceDto.department);
             }
-            if (deviceDto.name !== null) {
+            if (deviceDto.name != null) {
                 updateFields.push('name = ?');
                 updateValues.push(deviceDto.name);
             }
-            if (deviceDto.type !== null) {
+            if (deviceDto.type != null) {
                 updateFields.push('type = ?');
                 updateValues.push(deviceDto.type);
             }
@@ -55,7 +55,6 @@ const Device = {
 
             const updateQuery = `UPDATE deviceinfo SET ${updateFields.join(', ')} WHERE deviceId = ?`;
             updateValues.push(deviceDto.deviceId);
-
             await pool.query(updateQuery, updateValues);
         } else {
             await this.addDevice(deviceDto);
