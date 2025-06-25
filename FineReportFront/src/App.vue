@@ -30,8 +30,13 @@
                 </el-dropdown-item>
                 <el-dropdown-item command="show_info" divided>
                   <el-icon>
-                    <Delete />
+                    <WarningFilled />
                   </el-icon>显示IP地址
+                </el-dropdown-item>
+                <el-dropdown-item command="upgrade_app" divided>
+                  <el-icon>
+                    <Refresh />
+                  </el-icon>升级APP
                 </el-dropdown-item>
               </el-dropdown-menu>
             </template>
@@ -89,6 +94,11 @@
           </template>
         </el-table-column>
         <el-table-column prop="remark" label="备注" />
+        <el-table-column prop="version" label="app版本">
+          <template #default="{ row }">
+            {{ row.version ? 'V' + row.version : '' }}
+          </template>
+        </el-table-column>
         <!-- <el-table-column prop="lastSeen" label="最近访问时间" /> -->
         <el-table-column label="操作" align="center" fixed="right">
           <template #default="{ row }">
@@ -149,7 +159,7 @@ import { ref, reactive, onMounted } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { getDeviceList, deleteDevice, sendInfo, updateDevice } from './api/device'
 import type { DeviceInfo, SearchParams } from './api/types'
-import { Edit, Delete, Search, ArrowDown, Upload } from '@element-plus/icons-vue'
+import { Edit, Delete, Search, ArrowDown, Upload, WarningFilled, Refresh } from '@element-plus/icons-vue'
 
 
 const searchForm = reactive<SearchParams>({
@@ -187,7 +197,7 @@ const handleCommand = async (command: string) => {
     const deviceIdList: string[] = multipleSelection.value.map(obj => obj.deviceId);
     await sendInfo(deviceIdList, command);
     ElMessage.success("操作执行成功");
-    handleSearch();
+    // handleSearch();
   } catch (error) {
     ElMessage.error("操作执行失败");
   }
@@ -204,6 +214,7 @@ const editRow = ref<DeviceInfo>({
   department: '',
   name: '',
   type: '',
+  version: '',
   isUpdate: true
 });
 const showDrawer = (row: DeviceInfo) => {

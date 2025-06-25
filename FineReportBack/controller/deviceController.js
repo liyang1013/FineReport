@@ -1,4 +1,5 @@
 const Device = require('@/models/deviceModel');
+const Upgrade = require('@/models/upgradeModel');
 const { notifyDevice } = require('@/controller/websocketController');
 const ApiResponse = require('@/utils/responseUtils');
 const wsType = require('@/models/wsType')
@@ -65,6 +66,15 @@ exports.updateDevice = async (req, res) => {
             notifyDevice(deviceDto.deviceId, wsType.UPDATE);
         }
         res.json(ApiResponse.success());
+    } catch (error) {
+        res.status(500).json(ApiResponse.error(error.message));
+    }
+};
+
+exports.checkUpgrade = async(req, res) => {
+    try {
+        const appinfo =  await Upgrade.querylatestVersion();
+        res.json(ApiResponse.success(appinfo));
     } catch (error) {
         res.status(500).json(ApiResponse.error(error.message));
     }

@@ -8,6 +8,7 @@ class DeviceDTO {
         department,
         name,
         type,
+        version,
         isUpdate = true
     }) {
         this.deviceId = deviceId;
@@ -18,6 +19,7 @@ class DeviceDTO {
         this.department = department;
         this.name = name;
         this.type = type;
+        this.version = version;
         this.isUpdate = isUpdate;
     }
 

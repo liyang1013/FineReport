@@ -1,4 +1,4 @@
-package com.keboda.finereport.network;
+package com.keboda.finereport;
 
 import java.util.Date;
 

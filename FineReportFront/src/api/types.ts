@@ -8,6 +8,7 @@ export interface DeviceInfo {
   department: string
   name: string
   type: string
+  version: string
   isUpdate: boolean
 }
 

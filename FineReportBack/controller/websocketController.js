@@ -1,12 +1,12 @@
 const WebSocket = require('ws');
 const Device = require('@/models/deviceModel');
-const { broadcastToDevice, initializeWebSocket } = require('@/utils/websocketUtils'); 
+const { broadcastToDevice, initializeWebSocket } = require('@/utils/websocketUtils');
 const wsType = require('@/models/wsType')
 let wss;
 
 function setupWebSocket(server) {
     wss = new WebSocket.Server({ server });
-    
+
     initializeWebSocket(wss);
     wss.on('connection', (ws) => {
         ws.deviceId = null;
@@ -15,7 +15,7 @@ function setupWebSocket(server) {
                 const data = JSON.parse(message);
                 if (data.type === wsType.REGISTER) {
                     ws.deviceId = data.device_id;
-                    await Device.createOrUpdate({deviceId: data.device_id, ipAddress: data.ip_address});
+                    await Device.createOrUpdate({ deviceId: data.device_id, ipAddress: data.ip_address, version: data.version });
                     console.log(`Device connected: ${data.device_id}`);
                 }
             } catch (error) {

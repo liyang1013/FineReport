@@ -9,5 +9,6 @@ create table deviceinfo
     position   varchar(50)  null comment '位置',
     department varchar(50)  null comment '部门',
     name       varchar(50)  null,
-    type       varchar(50)  null comment '类型'
+    type       varchar(50)  null comment '类型',
+    version    varchar(5)   null
 );

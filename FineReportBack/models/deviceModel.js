@@ -1,5 +1,4 @@
 const pool = require('@/config/db');
-const DeviceDto = require('@/models/DeviceDto');
 
 const Device = {
     async findByDeviceId(deviceId) {
@@ -23,6 +22,10 @@ const Device = {
 
             updateFields.push('ipAddress = ?');
             updateValues.push(deviceDto.ipAddress);
+
+            updateFields.push('version = ?');
+            updateValues.push(deviceDto.version);
+
 
             if (deviceDto.url != null) {
                 updateFields.push('url = ?');
@@ -63,8 +66,8 @@ const Device = {
 
     async addDevice(deviceDTO) {
         await pool.query(
-            'INSERT INTO deviceinfo (deviceId, ipAddress, url,remark,position,department,name,type, lastSeen) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())',
-            [deviceDTO.deviceId, deviceDTO.ipAddress, deviceDTO.url, deviceDTO.remark, deviceDTO.position, deviceDTO.department, deviceDTO.name, deviceDTO.type]
+            'INSERT INTO deviceinfo (deviceId, ipAddress, url,remark,position,department,name,type,version ,lastSeen) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())',
+            [deviceDTO.deviceId, deviceDTO.ipAddress, deviceDTO.url, deviceDTO.remark, deviceDTO.position, deviceDTO.department, deviceDTO.name, deviceDTO.type,deviceDTO.version ]
         );
     },
     async queryDevices(deviceDto) {
