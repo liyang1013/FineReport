@@ -1,10 +1,7 @@
 package com.keboda.finereport;
 
-import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.Activity;
-import android.app.AlertDialog;
-import android.content.BroadcastReceiver;
 import android.content.SharedPreferences;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
@@ -23,26 +20,14 @@ import android.webkit.WebViewClient;
 import android.widget.FrameLayout;
 import android.widget.TextView;
 import android.widget.Toast;
-import android.app.DownloadManager;
-import android.content.Context;
-import android.content.Intent;
-import android.content.IntentFilter;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
-import android.database.Cursor;
-import android.net.Uri;
-import android.os.Environment;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.RequiresApi;
-import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
-import androidx.core.content.FileProvider;
 
 import com.google.android.material.snackbar.Snackbar;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
-import com.keboda.finereport.ApiResponse;
 
 import org.java_websocket.client.WebSocketClient;
 import org.java_websocket.handshake.ServerHandshake;
@@ -53,7 +38,6 @@ import org.xwalk.core.XWalkView;
 import org.xwalk.core.XWalkWebResourceRequest;
 import org.xwalk.core.XWalkWebResourceResponse;
 
-import java.io.File;
 import java.io.IOException;
 import java.net.Inet4Address;
 import java.net.InetAddress;
@@ -65,7 +49,6 @@ import java.util.Enumeration;
 
 import okhttp3.Call;
 import okhttp3.Callback;
-import okhttp3.FormBody;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
@@ -76,11 +59,6 @@ public class MainActivity extends Activity {
     private static final String URL_KEY = "current_url";
     private static final String SERVER_URL = "http://172.17.199.141:3000/api/devices/";
     private static final String WS_SERVER_URL = "ws://172.17.199.141:3000";
-    private Uri pendingInstallUri = null;
-    private static final int STORAGE_PERMISSION_REQUEST_CODE = 100;
-    private static final int INSTALL_PERMISSION_REQUEST_CODE = 101;
-    private long downloadId = -1;
-    private BroadcastReceiver downloadReceiver;
     private long backPressedTime = 0;
     private Toast backToast;
     private String deviceId;
@@ -107,6 +85,7 @@ public class MainActivity extends Activity {
 
         setContentView(R.layout.activity_main);
         container = findViewById(R.id.container);
+
         deviceId = Settings.Secure.getString(getContentResolver(), Settings.Secure.ANDROID_ID);
         Log.d(TAG, "Device ID: " + deviceId);
 
@@ -120,8 +99,6 @@ public class MainActivity extends Activity {
         } else {
             displayMessage("无网络连接，请检查网络设置");
         }
-        registerDownloadReceiver();
-        checkStoragePermission();
     }
 
     private boolean isNetworkConnected() {
@@ -370,7 +347,7 @@ public class MainActivity extends Activity {
                                     showSnackbar(getLocalIpAddress());
                                     break;
                                 case "upgrade_app":
-                                    checkAppUpdate();
+                                    Log.d(TAG, "等待完善");
                                     break;
                                 default:
                                     Log.d(TAG, "未知的任务类型:" + json.get("type").getAsString());
@@ -427,232 +404,6 @@ public class MainActivity extends Activity {
         handler.postDelayed(reconnectRunnable, RECONNECT_DELAY);
     }
 
-    /**
-     * 检查app更新
-     */
-    private void checkAppUpdate() {
-        Log.d(TAG, "Checking for app updates...");
-
-        OkHttpClient client = new OkHttpClient();
-        Request request = new Request.Builder()
-                .url(SERVER_URL + "checkUpgrade")
-                .post(new FormBody.Builder().build())
-                .build();
-
-        client.newCall(request).enqueue(new Callback() {
-            @Override
-            public void onFailure(@NonNull Call call, @NonNull IOException e) {
-                Log.e(TAG, "Error checking for updates", e);
-            }
-
-            @Override
-            public void onResponse(@NonNull Call call, @NonNull Response response) {
-                if (!response.isSuccessful()) {
-                    Log.e(TAG, "Unexpected code " + response);
-                    return;
-                }
-
-                try {
-                    assert response.body() != null;
-                    String responseData = response.body().string();
-                    ApiResponse apiResponse = gson.fromJson(responseData, ApiResponse.class);
-
-                    if (apiResponse.getCode() != 200) {
-                        throw new RuntimeException("url请求失败: " + apiResponse.getMessage());
-                    }
-                    JsonObject data = gson.fromJson(gson.toJson(apiResponse.getData()), JsonObject.class);
-
-                    String latestVersion = data.get("version").getAsString();
-
-                    if(latestVersion.compareTo(getCurrentVersion())>0){
-                        String updateMessage = data.get("updateMessage").getAsString();
-                        String downloadUrl = data.get("downloadUrl").getAsString();
-                        boolean forceUpdate = data.get("forceUpdate").getAsBoolean();
-
-                        runOnUiThread(() -> showUpdateDialog(
-                                latestVersion,
-                                updateMessage,
-                                downloadUrl,
-                                forceUpdate
-                        ));
-                    }
-                } catch (Exception e) {
-                    Log.e(TAG, "Error parsing update response", e);
-                }
-            }
-        });
-    }
-
-    /**
-     * 显示更新对话框
-     */
-    private void showUpdateDialog(String version, String message, String downloadUrl, boolean forceUpdate) {
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("新版本可用 v" + version);
-        builder.setMessage(message);
-        builder.setPositiveButton("立即更新", (dialog, which) -> {
-            downloadApk(downloadUrl);
-        });
-
-        if (!forceUpdate) {
-            builder.setNegativeButton("稍后再说", null);
-        }
-
-        builder.setCancelable(!forceUpdate);
-        builder.show();
-    }
-
-    /**
-     * 下载APK文件
-     */
-    private void downloadApk(String downloadUrl) {
-        Log.d(TAG, "Downloading APK from: " + downloadUrl);
-
-        try {
-            DownloadManager.Request request = new DownloadManager.Request(Uri.parse(downloadUrl));
-            request.setTitle("应用更新");
-            request.setDescription("正在下载新版本...");
-            request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
-
-            String fileName = "app_update_" + System.currentTimeMillis() + ".apk";
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                request.setDestinationInExternalFilesDir(this,
-                        Environment.DIRECTORY_DOWNLOADS, fileName);
-            } else {
-                request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, fileName);
-            }
-
-            request.setMimeType("application/vnd.android.package-archive");
-
-            DownloadManager downloadManager = (DownloadManager) getSystemService(DOWNLOAD_SERVICE);
-            downloadId = downloadManager.enqueue(request);
-
-            Toast.makeText(this, "开始下载更新...", Toast.LENGTH_SHORT).show();
-        } catch (Exception e) {
-            Log.e(TAG, "Download failed", e);
-            Toast.makeText(this, "下载失败: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-        }
-    }
-
-    /**
-     * 注册下载完成接收器
-     */
-    @SuppressLint("UnspecifiedRegisterReceiverFlag")
-    private void registerDownloadReceiver() {
-        downloadReceiver = new BroadcastReceiver() {
-            @Override
-            public void onReceive(Context context, Intent intent) {
-                long id = intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1);
-                if (id == downloadId) {
-                    checkDownloadStatus(id);
-                }
-            }
-        };
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            registerReceiver(downloadReceiver,
-                    new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE),
-                    Context.RECEIVER_NOT_EXPORTED);
-        } else {
-            registerReceiver(downloadReceiver,
-                    new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE));
-        }
-    }
-
-    /**
-     * 检查下载状态并安装APK
-     */
-    private void checkDownloadStatus(long id) {
-        DownloadManager downloadManager = (DownloadManager) getSystemService(DOWNLOAD_SERVICE);
-        DownloadManager.Query query = new DownloadManager.Query();
-        query.setFilterById(id);
-
-        Cursor cursor = downloadManager.query(query);
-        if (cursor.moveToFirst()) {
-            @SuppressLint("Range") int status = cursor.getInt(cursor.getColumnIndex(DownloadManager.COLUMN_STATUS));
-            @SuppressLint("Range") String localUri = cursor.getString(cursor.getColumnIndex(DownloadManager.COLUMN_LOCAL_URI));
-
-            switch (status) {
-                case DownloadManager.STATUS_SUCCESSFUL:
-                    Uri apkUri = Uri.parse(localUri);
-                    Log.d(TAG, "Download completed, URI: " + apkUri);
-
-                    String filePath = apkUri.getPath();
-                    if (filePath != null && new File(filePath).exists()) {
-                        installApk(apkUri);
-                    } else {
-                        Toast.makeText(this, "下载文件不存在", Toast.LENGTH_SHORT).show();
-                    }
-                    break;
-                case DownloadManager.STATUS_FAILED:
-                    @SuppressLint("Range") int reason = cursor.getInt(cursor.getColumnIndex(DownloadManager.COLUMN_REASON));
-                    String errorMsg = "下载失败: " + getDownloadErrorMessage(reason);
-                    Toast.makeText(this, errorMsg, Toast.LENGTH_SHORT).show();
-                    break;
-            }
-        }
-        cursor.close();
-    }
-
-    /**
-     * 获取下载错误信息
-     */
-    private String getDownloadErrorMessage(int reason) {
-        switch (reason) {
-            case DownloadManager.ERROR_CANNOT_RESUME:
-                return "无法恢复下载";
-            case DownloadManager.ERROR_DEVICE_NOT_FOUND:
-                return "存储设备未找到";
-            case DownloadManager.ERROR_FILE_ALREADY_EXISTS:
-                return "文件已存在";
-            case DownloadManager.ERROR_FILE_ERROR:
-                return "文件错误";
-            case DownloadManager.ERROR_HTTP_DATA_ERROR:
-                return "HTTP数据传输错误";
-            case DownloadManager.ERROR_INSUFFICIENT_SPACE:
-                return "存储空间不足";
-            case DownloadManager.ERROR_TOO_MANY_REDIRECTS:
-                return "重定向过多";
-            case DownloadManager.ERROR_UNHANDLED_HTTP_CODE:
-                return "未知HTTP错误";
-            default:
-                return "未知错误";
-        }
-    }
-
-    /**
-     * 安装APK
-     */
-    private void installApk(Uri apkUri) {
-        Log.d(TAG, "Installing APK: " + apkUri);
-
-        try {
-            Intent intent = new Intent(Intent.ACTION_VIEW);
-
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                intent.setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-                Uri contentUri = FileProvider.getUriForFile(this,
-                        getPackageName() + ".fileprovider",
-                        new File(apkUri.getPath()));
-                intent.setDataAndType(contentUri, "application/vnd.android.package-archive");
-            } else {
-                intent.setDataAndType(apkUri, "application/vnd.android.package-archive");
-                intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            }
-
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                if (!getPackageManager().canRequestPackageInstalls()) {
-                    pendingInstallUri = apkUri;
-                    checkInstallPermission();
-                    return;
-                }
-            }
-
-            startActivity(intent);
-        } catch (Exception e) {
-            Log.e(TAG, "Installation failed", e);
-            Toast.makeText(this, "安装失败: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-        }
-    }
 
     /**
      * 获取当前版本号
@@ -667,97 +418,12 @@ public class MainActivity extends Activity {
         }
     }
 
-    private void checkStoragePermission() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)
-                    != PackageManager.PERMISSION_GRANTED) {
 
-                if (ActivityCompat.shouldShowRequestPermissionRationale(this,
-                        Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
-                    new AlertDialog.Builder(this)
-                            .setTitle("需要存储权限")
-                            .setMessage("应用需要存储权限来下载和安装更新")
-                            .setPositiveButton("确定", (dialog, which) -> requestStoragePermission())
-                            .setNegativeButton("取消", null)
-                            .show();
-                } else {
-                    requestStoragePermission();
-                }
-            }
-        }
-    }
-
-    /**
-     * 请求存储权限
-     */
-    private void requestStoragePermission() {
-        ActivityCompat.requestPermissions(this,
-                new String[]{
-                        Manifest.permission.WRITE_EXTERNAL_STORAGE,
-                        Manifest.permission.READ_EXTERNAL_STORAGE
-                },
-                STORAGE_PERMISSION_REQUEST_CODE);
-    }
-
-    /**
-     * 处理权限请求结果
-     */
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
-                                           @NonNull int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-
-        if (requestCode == STORAGE_PERMISSION_REQUEST_CODE) {
-            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                // 权限被授予
-                Log.d(TAG, "存储权限已授予");
-            } else {
-                // 权限被拒绝
-                Toast.makeText(this, "存储权限被拒绝，无法下载更新", Toast.LENGTH_SHORT).show();
-            }
-        }
-    }
-
-    /**
-     * 检查并请求安装未知来源应用的权限
-     */
-    @RequiresApi(api = Build.VERSION_CODES.O)
-    private boolean checkInstallPermission() {
-        if (getPackageManager().canRequestPackageInstalls()) {
-            return true;
-        } else {
-            Intent intent = new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES)
-                    .setData(Uri.parse("package:" + getPackageName()));
-            startActivityForResult(intent, INSTALL_PERMISSION_REQUEST_CODE);
-            return false;
-        }
-    }
-
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == INSTALL_PERMISSION_REQUEST_CODE) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
-                    getPackageManager().canRequestPackageInstalls()) {
-                // 用户已授予安装权限，可以继续安装
-                if (pendingInstallUri != null) {
-                    installApk(pendingInstallUri);
-                    pendingInstallUri = null;
-                }
-            } else {
-                Toast.makeText(this, "安装权限被拒绝，无法安装更新", Toast.LENGTH_SHORT).show();
-            }
-        }
-    }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
         Log.d(TAG, "Activity destroyed");
-
-        if (downloadReceiver != null) {
-            unregisterReceiver(downloadReceiver);
-        }
 
         if (webSocketClient != null) {
             webSocketClient.close();
@@ -776,8 +442,6 @@ public class MainActivity extends Activity {
             xWalkView.onDestroy();
             xWalkView = null;
         }
-
-        pendingInstallUri = null;
     }
 
     @Override
@@ -809,6 +473,13 @@ public class MainActivity extends Activity {
         if (backPressedTime + 2000 > System.currentTimeMillis()) {
             backToast.cancel();
             super.onBackPressed();
+            if (webSocketClient != null) {
+                webSocketClient.close();
+            }
+
+            if (reconnectRunnable != null) {
+                handler.removeCallbacks(reconnectRunnable);
+            }
             return;
         } else {
             backToast = Toast.makeText(this, "再按一次退出应用", Toast.LENGTH_SHORT);
