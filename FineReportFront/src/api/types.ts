@@ -9,7 +9,15 @@ export interface DeviceInfo {
   name: string
   type: string
   version: string
+  centre: string
   isUpdate: boolean
+}
+
+export interface AppInfo {
+  version: string
+  updateMessage: string
+  downloadUrl: string
+  forceUpdate: boolean
 }
 
 export const defaultDeviceInfo: Partial<DeviceInfo> = {
@@ -25,4 +33,17 @@ export interface SearchParams {
   department?: string
   name?: string
   type?: string
+  centre?: string
+}
+
+export interface RouteItem {
+  path: string
+  name: string
+  meta: RouteMeta
+  children?: RouteItem[]
+}
+
+export interface RouteMeta {
+  title: string
+  icon: string
 }

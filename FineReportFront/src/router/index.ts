@@ -5,8 +5,17 @@ const router = createRouter({
   routes: [
     {
       path: '/',
-      name: 'about',
-      component: () => import('@/views/IndexView.vue'),
+      redirect: '/deviceInfo',
+    },
+    {
+      path: '/appUpdate',
+      name: 'AppUpdate',
+      component: () => import('@/views/AppUpdateView.vue'),
+    },
+    {
+      path: '/deviceInfo',
+      name: 'DeviceInfo',
+      component: () => import('@/views/DeviceInfoView.vue'),
     },
   ],
 })

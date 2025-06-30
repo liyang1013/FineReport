@@ -9,6 +9,5 @@ router.get('/:deviceId/delete', deviceController.deleteDevice);
 router.post('/add', deviceController.addDevice);
 router.post('/update', deviceController.updateDevice);
 router.post('/ws', deviceController.sendInfo);
-router.post('/checkUpgrade',  deviceController.checkUpgrade)
 
 module.exports = router;

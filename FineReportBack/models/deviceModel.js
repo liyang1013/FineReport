@@ -53,6 +53,10 @@ const Device = {
                 updateFields.push('type = ?');
                 updateValues.push(deviceDto.type);
             }
+            if (deviceDto.centre != null) {
+                updateFields.push('centre = ?');
+                updateValues.push(deviceDto.centre);
+            }
 
             updateFields.push('lastSeen = NOW()');
 
@@ -66,8 +70,8 @@ const Device = {
 
     async addDevice(deviceDTO) {
         await pool.query(
-            'INSERT INTO deviceinfo (deviceId, ipAddress, url,remark,position,department,name,type,version ,lastSeen) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())',
-            [deviceDTO.deviceId, deviceDTO.ipAddress, deviceDTO.url, deviceDTO.remark, deviceDTO.position, deviceDTO.department, deviceDTO.name, deviceDTO.type,deviceDTO.version ]
+            'INSERT INTO deviceinfo (deviceId, ipAddress, url,remark,position,department,name,type,version,centre ,lastSeen) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())',
+            [deviceDTO.deviceId, deviceDTO.ipAddress, deviceDTO.url, deviceDTO.remark, deviceDTO.position, deviceDTO.department, deviceDTO.name, deviceDTO.type,deviceDTO.version, deviceDTO.centre]
         );
     },
     async queryDevices(deviceDto) {
@@ -111,6 +115,11 @@ const Device = {
         if (deviceDto.remark) {
             query += ' AND LOWER(remark) LIKE LOWER(?)';
             params.push(`%${deviceDto.remark}%`);
+        }
+
+        if (deviceDto.centre) {
+            query += ' AND LOWER(centre) LIKE LOWER(?)';
+            params.push(`%${deviceDto.centre}%`);
         }
 
         query += ' ORDER BY deviceId, lastSeen DESC';

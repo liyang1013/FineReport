@@ -1,7 +1,7 @@
 <template>
     <div class="app-container">
         <el-card class="search-card">
-            <el-form :model="searchForm" label-position="right" label-width="80px" :inline="true" label-suffix=":">
+            <el-form :model="searchForm" label-position="left" label-width="80px" :inline="true" label-suffix=":">
                 <div class="action-buttons">
                     <el-button type="primary" @click="handleSearch" round class="search-button">
                         <el-icon>
@@ -47,6 +47,13 @@
                     <el-input v-model="searchForm.name" placeholder="请输入名称" clearable class="search-input" />
                 </el-form-item>
 
+                <el-form-item label="中心">
+
+                    <el-select v-model="searchForm.centre" placeholder="请选择中心" style="width: 160px" clearable>
+                        <el-option v-for="item in centreList" :key="item" :label="item" :value="item" />
+                    </el-select>
+                </el-form-item>
+
                 <el-form-item label="部门">
                     <el-input v-model="searchForm.department" placeholder="请输入部门" clearable class="search-input" />
                 </el-form-item>
@@ -80,9 +87,10 @@
 
         <el-card class="table-card">
             <el-table :data="tableData" border stripe v-loading="loading" @selection-change="handleSelectionChange"
-                style="width: 100%" height="calc(100vh - 180px)">
+                style="width: 100%" height="calc(100vh - 240px)">
                 <el-table-column type="selection" width="55" align="center" />
                 <el-table-column prop="name" label="名称" />
+                <el-table-column prop="centre" label="中心" />
                 <el-table-column prop="department" label="部门" />
                 <el-table-column prop="position" label="位置" />
                 <el-table-column prop="type" label="设备类型" />
@@ -128,17 +136,22 @@
                     <el-form-item label="名称">
                         <el-input v-model="editRow.name" placeholder="请输入名称" clearable />
                     </el-form-item>
-                    <el-form-item label="位置">
-                        <el-input v-model="editRow.position" placeholder="请输入位置" clearable />
+                    <el-form-item label="中心">
+                        <el-select v-model="editRow.centre" placeholder="请选择中心" clearable>
+                            <el-option v-for="item in centreList" :key="item" :label="item" :value="item" />
+                        </el-select>
                     </el-form-item>
                     <el-form-item label="部门">
                         <el-input v-model="editRow.department" placeholder="请输入部门" clearable />
+                    </el-form-item>
+                    <el-form-item label="位置">
+                        <el-input v-model="editRow.position" placeholder="请输入位置" clearable />
                     </el-form-item>
                     <el-form-item label="设备类型">
                         <el-input v-model="editRow.type" placeholder="请输入设备类型" clearable />
                     </el-form-item>
                     <el-form-item label="URL">
-                        <el-input v-model="editRow.url" placeholder="请输入URL" clearable type="textarea" :rows="5" />
+                        <el-input v-model="editRow.url" placeholder="请输入URL" clearable type="textarea" :rows="3" />
                     </el-form-item>
                     <el-form-item label="备注">
                         <el-input v-model="editRow.remark" placeholder="请输入备注" clearable />
@@ -161,6 +174,7 @@ import { getDeviceList, deleteDevice, sendInfo, updateDevice } from '@/api/devic
 import type { DeviceInfo, SearchParams } from '@/api/types'
 import { Edit, Delete, Search, ArrowDown, Upload, WarningFilled, Refresh } from '@element-plus/icons-vue'
 
+const centreList = ref(['嘉兴物流中心', '嘉兴电子', '嘉兴科奥', '嘉兴机电', '嘉兴科赛思', '智能科技'])
 
 const searchForm = reactive<SearchParams>({
     deviceId: "",
@@ -171,6 +185,7 @@ const searchForm = reactive<SearchParams>({
     department: "",
     name: "",
     type: "",
+    centre: ""
 });
 
 const tableData = ref<DeviceInfo[]>([]);
@@ -215,6 +230,7 @@ const editRow = ref<DeviceInfo>({
     name: '',
     type: '',
     version: '',
+    centre: '',
     isUpdate: true
 });
 const showDrawer = (row: DeviceInfo) => {
@@ -240,7 +256,7 @@ const handleSelectionChange = (val: DeviceInfo[]) => {
 }
 
 const handleDelete = (row: DeviceInfo) => {
-    ElMessageBox.confirm("确定要删除这条记录吗?", "提示", {
+    ElMessageBox.confirm(`确定要删除${row.deviceId}这条记录吗?`, "提示", {
         confirmButtonText: "确定",
         cancelButtonText: "取消",
         type: "warning",
@@ -273,15 +289,15 @@ onMounted(() => {
 
 <style scoped lang="scss">
 .app-container {
-    padding: 10px;
-    background-color: #f5f7fa;
-    width: 100vw;
-    min-height: 100vh;
-    box-sizing: border-box;
+    // padding: 10px;
+    // background-color: #f5f7fa;
+    // width: 100vw;
+    // min-height: 100vh;
+    // box-sizing: border-box;
 
     .search-card {
         margin-bottom: 20px;
-        border-radius: 12px;
+        // border-radius: 12px;
         box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
 
         :deep(.el-card__body) {
@@ -313,7 +329,7 @@ onMounted(() => {
     }
 
     .table-card {
-        border-radius: 12px;
+        // border-radius: 12px;
         box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
 
         :deep(.el-card__body) {
@@ -333,11 +349,11 @@ onMounted(() => {
     }
 
     .search-input {
-        width: 200px;
+        width: 160px;
     }
 
     .drawer-header {
-        padding: 20px;
+        padding: 10px;
         border-bottom: 1px solid #e8e8e8;
 
         h3 {
@@ -356,7 +372,7 @@ onMounted(() => {
     }
 
     .drawer-footer {
-        padding: 20px;
+        padding: 10px;
         border-top: 1px solid #e8e8e8;
         text-align: right;
     }

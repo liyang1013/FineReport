@@ -9,6 +9,7 @@ class DeviceDTO {
         name,
         type,
         version,
+        centre,
         isUpdate = true
     }) {
         this.deviceId = deviceId;
@@ -21,6 +22,7 @@ class DeviceDTO {
         this.type = type;
         this.version = version;
         this.isUpdate = isUpdate;
+        this.centre = centre;
     }
 
     validate() {

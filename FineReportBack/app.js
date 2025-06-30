@@ -6,6 +6,7 @@ const bodyParser = require('body-parser');
 const cors = require('cors');
 const ApiResponse = require('@/utils/responseUtils');
 const deviceRoutes = require('@/routes/deviceRoutes');
+const appRoutes = require('@/routes/appRoutes');
 const { setupWebSocket, broadcastUrlUpdate } = require('@/controller/websocketController');
 
 
@@ -16,6 +17,7 @@ app.use(cors());
 app.use(bodyParser.json());
 
 app.use('/api/devices', deviceRoutes);
+app.use('/api/app', appRoutes);
 
 setupWebSocket(server);
 
