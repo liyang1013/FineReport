@@ -38,8 +38,15 @@ exports.addDevice = async (req, res) => {
 exports.queryDevices = async (req, res) => {
     try {
         const deviceDto = new DeviceDto(req.body);
-        const devices = await Device.queryDevices(deviceDto);
-        res.json(ApiResponse.success(devices));
+        const page = parseInt(req.body.page) || 1;
+        const pageSize = parseInt(req.body.pageSize) || 20;
+        const { devices, total } = await Device.queryDevices(deviceDto, page, pageSize);
+        res.json(ApiResponse.success({
+            data: devices,
+            total: total,
+            page: page,
+            pageSize: pageSize
+        }));
     } catch (error) {
         res.status(500).json(ApiResponse.error(error.message));
     }

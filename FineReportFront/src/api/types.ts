@@ -47,3 +47,10 @@ export interface RouteMeta {
   title: string
   icon: string
 }
+
+export interface PaginationResponse<T> {
+  data: T[]
+  total: number
+  page: number
+  pageSize: number
+}

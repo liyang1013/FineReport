@@ -87,7 +87,7 @@
 
         <el-card class="table-card">
             <el-table :data="tableData" border v-loading="loading" @selection-change="handleSelectionChange"
-                style="width: 100%" height="calc(100vh - 220px)" :row-class-name="tableRowClassName">
+                style="width: 100%" height="calc(100vh - 240px)" :row-class-name="tableRowClassName">
                 <el-table-column type="selection" width="55" align="center" />
                 <el-table-column prop="name" label="名称" />
                 <el-table-column prop="centre" label="中心" sortable />
@@ -119,6 +119,11 @@
                     </template>
                 </el-table-column>
             </el-table>
+
+            <el-pagination class="pagination" v-model:current-page="pagination.currentPage"
+                v-model:page-size="pagination.pageSize" :page-sizes="[20, 50, 100, 200]" :small="false"
+                :background="true" layout="total, sizes, prev, pager, next, jumper" :total="pagination.total"
+                @size-change="handleSizeChange" @current-change="handleCurrentChange" />
         </el-card>
 
         <el-drawer v-model="drawer" :size="400" :with-header="false">
@@ -173,8 +178,9 @@ import { ElMessage, ElMessageBox } from "element-plus";
 import { getDeviceList, deleteDevice, sendInfo, updateDevice } from '@/api/device'
 import type { DeviceInfo, SearchParams } from '@/api/types'
 import { Edit, Delete, Search, ArrowDown, Upload, WarningFilled, Refresh } from '@element-plus/icons-vue'
+import {centres} from '@/config/centres.json'
 
-const centreList = ref(['嘉兴物流中心', '嘉兴电子', '嘉兴科奥', '嘉兴机电', '嘉兴科赛思', '智能科技', '管理平台'])
+const centreList = ref(centres)
 
 const tableRowClassName = ({
     row,
@@ -202,13 +208,24 @@ const searchForm = reactive<SearchParams>({
     centre: ""
 });
 
+const pagination = reactive({
+    currentPage: 1,
+    pageSize: 20,
+    total: 0
+});
+
 const tableData = ref<DeviceInfo[]>([]);
 const loading = ref(false);
 const handleSearch = async () => {
     loading.value = true;
     try {
-        const res = await getDeviceList(searchForm)
-        tableData.value = res;
+        const res = await getDeviceList({
+            ...searchForm,
+            page: pagination.currentPage,
+            pageSize: pagination.pageSize
+        })
+        tableData.value = res.data;
+        pagination.total = res.total
     } catch (error) {
         console.error('Error fetching device list:', error);
         ElMessage.error('获取设备列表失败');
@@ -216,6 +233,18 @@ const handleSearch = async () => {
         loading.value = false;
     }
 };
+
+const handleSizeChange = (val: number) => {
+    pagination.pageSize = val;
+    handleSearch();
+};
+
+
+const handleCurrentChange = (val: number) => {
+    pagination.currentPage = val;
+    handleSearch();
+};
+
 
 const handleCommand = async (command: string) => {
     if (multipleSelection.value.length == 0) {
@@ -370,6 +399,12 @@ onMounted(() => {
                 .success-row {
                     --el-table-tr-bg-color: var(--el-color-success-light-9);
                 }
+            }
+
+            .pagination {
+                padding: 10px;
+                display: flex;
+                justify-content: flex-end;
             }
         }
     }

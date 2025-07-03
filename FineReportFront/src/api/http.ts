@@ -2,7 +2,7 @@ import axios, { type AxiosInstance, type AxiosResponse, type AxiosRequestConfig 
 import { ElMessage } from 'element-plus'
 
 const service: AxiosInstance = axios.create({
-  baseURL: 'http://172.17.199.141:3000',
+  baseURL: '/back',
   timeout: 1000 * 60,
   responseType: 'json',
 })

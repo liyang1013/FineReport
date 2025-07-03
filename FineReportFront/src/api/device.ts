@@ -1,9 +1,9 @@
 import request from '@/api/http'
-import type { DeviceInfo, SearchParams } from '@/api/types'
+import type { DeviceInfo, SearchParams, PaginationResponse } from '@/api/types'
 
 // 获取设备列表
-export function getDeviceList(params: SearchParams) {
-  return request<DeviceInfo[]>({
+export function getDeviceList(params: SearchParams & { page?: number; pageSize?: number }) {
+  return request<PaginationResponse<DeviceInfo>>({
     url: '/api/devices/query',
     method: 'post',
     data: params,
