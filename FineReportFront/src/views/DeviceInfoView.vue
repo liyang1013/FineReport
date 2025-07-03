@@ -86,14 +86,14 @@
         </el-card>
 
         <el-card class="table-card">
-            <el-table :data="tableData" border stripe v-loading="loading" @selection-change="handleSelectionChange"
-                style="width: 100%" height="calc(100vh - 240px)">
+            <el-table :data="tableData" border v-loading="loading" @selection-change="handleSelectionChange"
+                style="width: 100%" height="calc(100vh - 220px)" :row-class-name="tableRowClassName">
                 <el-table-column type="selection" width="55" align="center" />
                 <el-table-column prop="name" label="名称" />
-                <el-table-column prop="centre" label="中心" />
-                <el-table-column prop="department" label="部门" />
+                <el-table-column prop="centre" label="中心" sortable />
+                <el-table-column prop="department" label="部门" sortable />
                 <el-table-column prop="position" label="位置" />
-                <el-table-column prop="type" label="设备类型" />
+                <el-table-column prop="type" label="设备类型" sortable />
                 <el-table-column prop="deviceId" label="设备ID" />
                 <el-table-column prop="ipAddress" label="IP地址" />
                 <el-table-column prop="url" label="URL">
@@ -174,7 +174,21 @@ import { getDeviceList, deleteDevice, sendInfo, updateDevice } from '@/api/devic
 import type { DeviceInfo, SearchParams } from '@/api/types'
 import { Edit, Delete, Search, ArrowDown, Upload, WarningFilled, Refresh } from '@element-plus/icons-vue'
 
-const centreList = ref(['嘉兴物流中心', '嘉兴电子', '嘉兴科奥', '嘉兴机电', '嘉兴科赛思', '智能科技'])
+const centreList = ref(['嘉兴物流中心', '嘉兴电子', '嘉兴科奥', '嘉兴机电', '嘉兴科赛思', '智能科技', '管理平台'])
+
+const tableRowClassName = ({
+    row,
+    rowIndex,
+}: {
+    row: DeviceInfo
+    rowIndex: number
+}) => {
+    if (rowIndex % 2 === 0) {
+        return ''
+    } else {
+        return 'success-row'
+    }
+}
 
 const searchForm = reactive<SearchParams>({
     deviceId: "",
@@ -296,7 +310,7 @@ onMounted(() => {
     // box-sizing: border-box;
 
     .search-card {
-        margin-bottom: 20px;
+        margin-bottom: 10px;
         // border-radius: 12px;
         box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
 
@@ -343,6 +357,18 @@ onMounted(() => {
 
                 .el-button {
                     margin: 0 3px;
+                }
+
+                .el-table__body-wrapper tbody tr:hover>td {
+                    background-color: transparent;
+                }
+
+                .warning-row {
+                    --el-table-tr-bg-color: var(--el-color-warning-light-9);
+                }
+
+                .success-row {
+                    --el-table-tr-bg-color: var(--el-color-success-light-9);
                 }
             }
         }

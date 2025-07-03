@@ -1,5 +1,5 @@
-import request from './http'
-import type { DeviceInfo, SearchParams } from './types'
+import request from '@/api/http'
+import type { DeviceInfo, SearchParams } from '@/api/types'
 
 // 获取设备列表
 export function getDeviceList(params: SearchParams) {
