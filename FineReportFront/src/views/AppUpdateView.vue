@@ -2,7 +2,7 @@
     <div class="app-container">
         <el-card class="table-card">
             <el-table :data="tableData" border stripe v-loading="loading" style="width: 100%"
-                height="calc(100vh - 100px)">
+                height="calc(100vh - 85px)">
                 <el-table-column prop="version" label="版本">
                     <template #default="{ row }">
                         {{ `V${row.version}` }}

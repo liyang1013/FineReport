@@ -87,7 +87,7 @@
 
         <el-card class="table-card">
             <el-table :data="tableData" border v-loading="loading" @selection-change="handleSelectionChange"
-                style="width: 100%" height="calc(100vh - 240px)" :row-class-name="tableRowClassName">
+                style="width: 100%" height="calc(100vh - 270px)" :row-class-name="tableRowClassName">
                 <el-table-column type="selection" width="55" align="center" />
                 <el-table-column prop="name" label="名称" />
                 <el-table-column prop="centre" label="中心" sortable />
@@ -178,7 +178,7 @@ import { ElMessage, ElMessageBox } from "element-plus";
 import { getDeviceList, deleteDevice, sendInfo, updateDevice } from '@/api/device'
 import type { DeviceInfo, SearchParams } from '@/api/types'
 import { Edit, Delete, Search, ArrowDown, Upload, WarningFilled, Refresh } from '@element-plus/icons-vue'
-import {centres} from '@/config/centres.json'
+import { centres } from '@/config/centres.json'
 
 const centreList = ref(centres)
 
