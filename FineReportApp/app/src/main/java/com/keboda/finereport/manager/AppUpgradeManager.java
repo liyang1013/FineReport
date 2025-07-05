@@ -12,15 +12,12 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Environment;
-import android.os.Handler;
-import android.os.Looper;
 import android.util.Log;
 import android.widget.Toast;
 
 import androidx.core.content.ContextCompat;
 import androidx.core.content.FileProvider;
 
-import com.google.gson.JsonObject;
 import com.keboda.finereport.model.ApiResponse;
 import com.keboda.finereport.model.AppVersion;
 import com.google.gson.Gson;
@@ -104,19 +101,6 @@ public class AppUpgradeManager {
         registerDownloadReceiver();
     }
 
-    private void registerDownloadReceiver() {
-        downloadReceiver = new BroadcastReceiver() {
-            @Override
-            public void onReceive(Context context, Intent intent) {
-                long receivedDownloadId = intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1);
-                if (downloadId == receivedDownloadId) {
-                    checkDownloadStatus();
-                }
-            }
-        };
-        ContextCompat.registerReceiver(activity, downloadReceiver, new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE), ContextCompat.RECEIVER_NOT_EXPORTED);
-    }
-
     private void checkDownloadStatus() {
         DownloadManager downloadManager = (DownloadManager) activity.getSystemService(Context.DOWNLOAD_SERVICE);
         DownloadManager.Query query = new DownloadManager.Query();
@@ -147,23 +131,6 @@ public class AppUpgradeManager {
         }
     }
 
-
-    private ApiResponse getLatestVersion(String checkUrl) throws IOException {
-        Request request = new Request.Builder().url(checkUrl).build();
-
-        try (Response response = httpClient.newCall(request).execute()) {
-            if (!response.isSuccessful()) return null;
-
-            assert response.body() != null;
-            String json = response.body().string();
-            return gson.fromJson(json, ApiResponse.class);
-        }
-    }
-
-    private boolean needUpgrade(String latestVersionCode) {
-        return latestVersionCode.compareTo(AppUtils.getCurrentVersion(context)) > 0;
-    }
-
     private void installApk() {
         File apkFile = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), APK_NAME);
 
@@ -187,8 +154,17 @@ public class AppUpgradeManager {
         activity.startActivity(intent);
     }
 
-    private void showToast(String message) {
-        activity.runOnUiThread(() -> Toast.makeText(activity, message, Toast.LENGTH_LONG).show());
+    private void registerDownloadReceiver() {
+        downloadReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                long receivedDownloadId = intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1);
+                if (downloadId == receivedDownloadId) {
+                    checkDownloadStatus();
+                }
+            }
+        };
+        ContextCompat.registerReceiver(activity, downloadReceiver, new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE), ContextCompat.RECEIVER_NOT_EXPORTED);
     }
 
     public void unregisterReceiver() {
@@ -200,4 +176,25 @@ public class AppUpgradeManager {
             Log.e(TAG, "取消注册广播接收器失败", e);
         }
     }
+
+    private ApiResponse getLatestVersion(String checkUrl) throws IOException {
+        Request request = new Request.Builder().url(checkUrl).build();
+
+        try (Response response = httpClient.newCall(request).execute()) {
+            if (!response.isSuccessful()) return null;
+
+            assert response.body() != null;
+            String json = response.body().string();
+            return gson.fromJson(json, ApiResponse.class);
+        }
+    }
+
+    private boolean needUpgrade(String latestVersionCode) {
+        return latestVersionCode.compareTo(AppUtils.getCurrentVersion(context)) > 0;
+    }
+
+    private void showToast(String message) {
+        activity.runOnUiThread(() -> Toast.makeText(activity, message, Toast.LENGTH_LONG).show());
+    }
+
 }
