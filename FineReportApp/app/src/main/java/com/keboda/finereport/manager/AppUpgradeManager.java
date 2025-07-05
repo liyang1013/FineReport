@@ -53,12 +53,12 @@ public class AppUpgradeManager {
             try {
                 ApiResponse response = getLatestVersion(checkUrl);
                 assert response != null;
-                if (!response.getSuccess()) {
-                    showToast("检查更新失败: " + response.getMessage());
+                if (!response.success) {
+                    showToast("检查更新失败: " + response.message);
                     return;
                 }
 
-                AppVersion appVersion = gson.fromJson(gson.toJson(response.getData()), AppVersion.class);
+                AppVersion appVersion = gson.fromJson(gson.toJson(response.data), AppVersion.class);
 
                 if (!needUpgrade(appVersion.version)) {
                     showToast("当前已是最新版本");

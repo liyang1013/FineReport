@@ -93,10 +93,10 @@ public class UrlManager {
                     assert response.body() != null;
                     String responseData = response.body().string();
                     ApiResponse apiResponse = gson.fromJson(responseData, ApiResponse.class);
-                    if (!apiResponse.getSuccess()) {
-                        throw new RuntimeException("url请求失败: " + apiResponse.getMessage());
+                    if (!apiResponse.success) {
+                        throw new RuntimeException("url请求失败: " + apiResponse.message);
                     }
-                    JsonObject json = gson.fromJson(gson.toJson(apiResponse.getData()), JsonObject.class);
+                    JsonObject json = gson.fromJson(gson.toJson(apiResponse.data), JsonObject.class);
                     Log.d(TAG, json.toString());
                     String url = json.get("url").getAsString();
 

@@ -6,4 +6,5 @@ public class AppVersion {
     public String updateMessage;
     public String downloadUrl;
     public Integer forceUpdate;
+
 }
