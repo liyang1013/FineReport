@@ -77,7 +77,7 @@ public class WebSocketManager {
             json.addProperty("device_id", deviceId);
             json.addProperty("ip_address", NetworkUtils.getLocalIpAddress());
             json.addProperty("type", "device_register");
-            json.addProperty("version", AppUtils.getCurrentVersion(context));
+            json.addProperty("version", AppUtils.getCurrentVersionName(context));
             webSocketClient.send(json.toString());
             Log.d(TAG, "Sent device registration: " + json);
         }

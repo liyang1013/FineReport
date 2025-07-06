@@ -104,7 +104,7 @@
                 <el-table-column prop="remark" label="备注" />
                 <el-table-column prop="version" label="app版本">
                     <template #default="{ row }">
-                        {{ row.version ? 'V' + row.version : '' }}
+                        {{ row.version ? `V${row.version}` : '' }}
                     </template>
                 </el-table-column>
                 <!-- <el-table-column prop="lastSeen" label="最近访问时间" /> -->

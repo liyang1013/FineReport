@@ -5,7 +5,7 @@
                 height="calc(100vh - 85px)">
                 <el-table-column prop="version" label="版本">
                     <template #default="{ row }">
-                        {{ `V${row.version}` }}
+                        {{ row.versionName }}
                     </template>
                 </el-table-column>
                 <el-table-column prop="updateMessage" label="更新信息" />

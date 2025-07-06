@@ -15,9 +15,6 @@ import android.os.Environment;
 import android.util.Log;
 import android.widget.Toast;
 
-import androidx.core.content.ContextCompat;
-import androidx.core.content.FileProvider;
-
 import com.keboda.finereport.model.ApiResponse;
 import com.keboda.finereport.model.AppVersion;
 import com.google.gson.Gson;
@@ -32,6 +29,7 @@ import java.util.concurrent.Executors;
 public class AppUpgradeManager {
     private static final String TAG = "AppUpgradeManager";
     private static final String APK_NAME = "app_update.apk";
+    private static final String DOWNLOAD_URL_PRE= "http://192.168.1.8/static/";
     private BroadcastReceiver downloadReceiver;
     private final Activity activity;
     private final ExecutorService executorService;
@@ -60,7 +58,7 @@ public class AppUpgradeManager {
 
                 AppVersion appVersion = gson.fromJson(gson.toJson(response.data), AppVersion.class);
 
-                if (!needUpgrade(appVersion.version)) {
+                if (AppUtils.getCurrentVersionCode(context) >= appVersion.versionCode ) {
                     showToast("当前已是最新版本");
                 } else {
                     showUpdateDialog(appVersion);
@@ -74,97 +72,88 @@ public class AppUpgradeManager {
     }
 
     public void showUpdateDialog(AppVersion appVersion) {
-        activity.runOnUiThread(() -> new AlertDialog.Builder(activity).setTitle("发现新版本 " + appVersion.version).setMessage(appVersion.updateMessage).setPositiveButton("立即更新", (dialog, which) -> startDownload(appVersion.downloadUrl)).setNegativeButton(appVersion.forceUpdate == 1 ? "退出" : "稍后再说", (dialog, which) -> {
+        activity.runOnUiThread(() -> new AlertDialog.Builder(activity).setTitle("发现新版本 " + appVersion.versionName).setMessage(appVersion.updateMessage).setPositiveButton("立即更新", (dialog, which) -> startDownload(appVersion.downloadUrl)).setNegativeButton(appVersion.forceUpdate == 1 ? "退出" : "稍后再说", (dialog, which) -> {
             if (appVersion.forceUpdate == 1) {
                 activity.finish();
             }
         }).setCancelable(appVersion.forceUpdate != 1).show());
     }
 
-    private void startDownload(String downloadUrl) {
-
-        File downloadDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
-        if (!downloadDir.exists()) {
-            downloadDir.mkdirs();
-        }
-
-        File apkFile = new File(downloadDir, APK_NAME);
-        if (apkFile.exists()) {
-            apkFile.delete();
-        }
-
-        DownloadManager.Request request = new DownloadManager.Request(Uri.parse(downloadUrl)).setTitle("应用更新").setDescription("正在下载新版本...").setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED).setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, APK_NAME).setAllowedOverMetered(true)
+    private void startDownload(String url) {
+        DownloadManager.Request request = new DownloadManager.Request(Uri.parse(DOWNLOAD_URL_PRE + url))
+                .setTitle("应用更新")
+                .setDescription("正在下载新版本")
+                .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE)
+                .setAllowedOverMetered(true)
                 .setAllowedOverRoaming(true);
 
-        DownloadManager downloadManager = (DownloadManager) activity.getSystemService(Context.DOWNLOAD_SERVICE);
-        downloadId = downloadManager.enqueue(request);
+        File downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+        request.setDestinationUri(Uri.fromFile(new File(downloadsDir, APK_NAME)));
+
+        DownloadManager manager = (DownloadManager) context.getSystemService(Context.DOWNLOAD_SERVICE);
+        downloadId = manager.enqueue(request);
         registerDownloadReceiver();
     }
 
-    private void checkDownloadStatus() {
-        DownloadManager downloadManager = (DownloadManager) activity.getSystemService(Context.DOWNLOAD_SERVICE);
-        DownloadManager.Query query = new DownloadManager.Query();
-        query.setFilterById(downloadId);
 
-        try (Cursor cursor = downloadManager.query(query)) {
+
+    private void checkDownloadStatus() {
+        DownloadManager.Query query = new DownloadManager.Query().setFilterById(downloadId);
+        try (Cursor cursor = ((DownloadManager) context.getSystemService(Context.DOWNLOAD_SERVICE)).query(query)) {
             if (cursor.moveToFirst()) {
                 @SuppressLint("Range") int status = cursor.getInt(cursor.getColumnIndex(DownloadManager.COLUMN_STATUS));
-                switch (status) {
-                    case DownloadManager.STATUS_SUCCESSFUL:
-                        installApk();
-                        break;
-                    case DownloadManager.STATUS_FAILED:
-                        showToast("下载失败");
-                        break;
-                    case DownloadManager.STATUS_PAUSED:
-                        showToast("下载已暂停");
-                        break;
-                    case DownloadManager.STATUS_PENDING:
-                        showToast("下载等待中");
-                        break;
-                    case DownloadManager.STATUS_RUNNING:
-                        break;
+                if (status == DownloadManager.STATUS_SUCCESSFUL) {
+                    installApk();
+                } else {
+                    Log.e(TAG, "下载失败，状态码: " + status);
                 }
             }
         } catch (Exception e) {
-            Log.e(TAG, "检查下载状态失败", e);
+            Log.e(TAG, "检查下载状态异常", e);
         }
     }
 
     private void installApk() {
-        File apkFile = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), APK_NAME);
+        DownloadManager dm = (DownloadManager) context.getSystemService(Context.DOWNLOAD_SERVICE);
+        Uri apkUri = dm.getUriForDownloadedFile(downloadId);
 
-        if (!apkFile.exists()) {
-            showToast("安装文件不存在");
+        if (apkUri == null) {
+            Log.e(TAG, "安装文件URI为空");
             return;
         }
 
-        Intent intent = new Intent(Intent.ACTION_VIEW);
-        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        Intent install = new Intent(Intent.ACTION_VIEW)
+                .setDataAndType(apkUri, "application/vnd.android.package-archive")
+                .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
 
-        Uri apkUri;
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            apkUri = FileProvider.getUriForFile(activity, activity.getPackageName() + ".fileprovider", apkFile);
-            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-        } else {
-            apkUri = Uri.fromFile(apkFile);
+        try {
+            context.startActivity(install);
+        } catch (Exception e) {
+            Log.e(TAG, "启动安装界面失败", e);
         }
-
-        intent.setDataAndType(apkUri, "application/vnd.android.package-archive");
-        activity.startActivity(intent);
     }
 
+    @SuppressLint("UnspecifiedRegisterReceiverFlag")
     private void registerDownloadReceiver() {
         downloadReceiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
-                long receivedDownloadId = intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1);
-                if (downloadId == receivedDownloadId) {
-                    checkDownloadStatus();
+                if (intent.getAction().equals(DownloadManager.ACTION_DOWNLOAD_COMPLETE)) {
+                    long id = intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1);
+                    if (id == downloadId) {
+                        checkDownloadStatus();
+                    }
                 }
             }
         };
-        ContextCompat.registerReceiver(activity, downloadReceiver, new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE), ContextCompat.RECEIVER_NOT_EXPORTED);
+
+        // 正确的动态注册方式
+        IntentFilter filter = new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            context.registerReceiver(downloadReceiver, filter, Context.RECEIVER_EXPORTED);
+        } else {
+            context.registerReceiver(downloadReceiver, filter);
+        }
     }
 
     public void unregisterReceiver() {
@@ -187,10 +176,6 @@ public class AppUpgradeManager {
             String json = response.body().string();
             return gson.fromJson(json, ApiResponse.class);
         }
-    }
-
-    private boolean needUpgrade(String latestVersionCode) {
-        return latestVersionCode.compareTo(AppUtils.getCurrentVersion(context)) > 0;
     }
 
     private void showToast(String message) {

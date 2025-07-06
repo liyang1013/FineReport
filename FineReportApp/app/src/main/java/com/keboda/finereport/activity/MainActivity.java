@@ -20,9 +20,9 @@ import com.keboda.finereport.utils.NetworkUtils;
 
 public class MainActivity extends Activity implements WebSocketListener, UrlManager.UrlCallback {
 
-    private static final String SERVER_URL = "http://192.168.1.6:3000/api/devices/";
-    private static final String WS_SERVER_URL = "ws://192.168.1.6:3000";
-    private static final String CHECK_URL = "http://192.168.1.6:3000/api/app/checkUpgrade";
+    private static final String SERVER_URL = "http://192.168.1.8:3000/api/devices/";
+    private static final String WS_SERVER_URL = "ws://192.168.1.8:3000";
+    private static final String CHECK_URL = "http://192.168.1.8:3000/api/app/checkUpgrade";
     private long backPressedTime = 0;
     private Toast backToast;
     private FrameLayout container;

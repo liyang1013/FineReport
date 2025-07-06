@@ -14,7 +14,8 @@ export interface DeviceInfo {
 }
 
 export interface AppInfo {
-  version: string
+  versionName: string
+  versionCode: number
   updateMessage: string
   downloadUrl: string
   forceUpdate: boolean
