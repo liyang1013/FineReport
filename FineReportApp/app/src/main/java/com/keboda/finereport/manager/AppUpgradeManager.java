@@ -103,7 +103,7 @@ public class AppUpgradeManager {
             if (cursor.moveToFirst()) {
                 @SuppressLint("Range") int status = cursor.getInt(cursor.getColumnIndex(DownloadManager.COLUMN_STATUS));
                 if (status == DownloadManager.STATUS_SUCCESSFUL) {
-                    installApk();
+                    installApkAutomatically();
                 } else {
                     Log.e(TAG, "下载失败，状态码: " + status);
                 }
@@ -113,7 +113,7 @@ public class AppUpgradeManager {
         }
     }
 
-    private void installApk() {
+    private void installApkAutomatically() {
         DownloadManager dm = (DownloadManager) context.getSystemService(Context.DOWNLOAD_SERVICE);
         Uri apkUri = dm.getUriForDownloadedFile(downloadId);
 
@@ -122,14 +122,23 @@ public class AppUpgradeManager {
             return;
         }
 
-        Intent install = new Intent(Intent.ACTION_VIEW)
-                .setDataAndType(apkUri, "application/vnd.android.package-archive")
-                .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        Intent install = new Intent(Intent.ACTION_INSTALL_PACKAGE)
+                .setData(apkUri)
+                .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            install.putExtra(Intent.EXTRA_NOT_UNKNOWN_SOURCE, true);
+        }
 
         try {
             context.startActivity(install);
         } catch (Exception e) {
-            Log.e(TAG, "启动安装界面失败", e);
+            Log.e(TAG, "自动安装失败", e);
+            Intent fallback = new Intent(Intent.ACTION_VIEW)
+                    .setDataAndType(apkUri, "application/vnd.android.package-archive")
+                    .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            context.startActivity(fallback);
         }
     }
 
@@ -147,7 +156,6 @@ public class AppUpgradeManager {
             }
         };
 
-        // 正确的动态注册方式
         IntentFilter filter = new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             context.registerReceiver(downloadReceiver, filter, Context.RECEIVER_EXPORTED);

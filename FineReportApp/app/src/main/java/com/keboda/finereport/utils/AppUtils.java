@@ -4,6 +4,7 @@ import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
+import android.os.Build;
 import android.provider.Settings;
 import android.util.Log;
 
@@ -28,6 +29,20 @@ public class AppUtils {
             Log.e(TAG, "Error getting versionCode info", e);
             return -1;
         }
+    }
+
+    public static String getDeviceManufacturer() {
+        String manufacturer = Build.MANUFACTURER.toLowerCase();
+        if (manufacturer.contains("huawei") || manufacturer.contains("honor")) {
+            return "huawei";
+        } else if (manufacturer.contains("xiaomi")) {
+            return "xiaomi";
+        } else if (manufacturer.contains("oppo")) {
+            return "oppo";
+        } else if (manufacturer.contains("vivo")) {
+            return "vivo";
+        }
+        return "other";
     }
 
     @SuppressLint("HardwareIds")
