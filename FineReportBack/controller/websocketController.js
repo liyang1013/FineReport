@@ -26,7 +26,6 @@ function setupWebSocket(server) {
 }
 
 function notifyDevice(deviceId, type) {
-    console.log(type)
     broadcastToDevice(deviceId, {
         type: type,
         device_id: deviceId,

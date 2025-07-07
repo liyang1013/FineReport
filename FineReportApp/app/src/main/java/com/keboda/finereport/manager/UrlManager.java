@@ -23,7 +23,6 @@ public class UrlManager {
     private static final String TAG = "UrlManager";
     private static final String PREFS_NAME = "TVAppPrefs";
     private static final String URL_KEY = "current_url";
-
     private final Context context;
     private final String deviceId;
     private final String serverUrl;
